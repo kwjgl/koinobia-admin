@@ -17,6 +17,57 @@
     clearTimeout(toast.t); toast.t = setTimeout(() => { b.hidden = true; }, 3500);
   }
 
+  // 카드의 앱 칸은 받은 상태만 그린다. 서버 주소는 화면에 넣지 않는다.
+  function isOld(status) { return status && String(status.version).slice(0, 10) < CFG.NEED_SERVER; }
+  function koideBox(c) {
+    const st = c.status, todos = [];
+    const box = el('div', { class: 'aa-app' }, el('p', { class: 'label' }, '코이데'));
+    if (st) {
+      const stats = [['부서', st.depts], ['연결', st.linked], ['코드로 온 사람', c.came], ['7일 오류', st.errors]];
+      box.append(el('dl', { class: 'aa-stats' }, ...stats.map(([name, value]) =>
+        el('div', null, el('dt', null, name), el('dd', null, value ?? 0)))));
+      if (st.asks > 0) todos.push(el('span', { class: 'ch-todo' }, '승인 기다림 ' + st.asks));
+      if (isOld(st)) todos.push(el('span', { class: 'ch-todo' }, '새 버전으로 배포 필요'));
+      if (!st.opened) todos.push(el('span', { class: 'ch-todo warn' }, '이번 달 기도제목 아직 없음'));
+      if (st.auto) todos.push(el('span', { class: 'ch-todo warn' }, '승인 없이 바로 연결'));
+    } else {
+      box.append(el('p', { class: 'aa-err' }, '서버에 묻지 못했어요' + (c.err ? ' · ' + c.err : '')));
+    }
+    if (todos.length) box.append(el('div', { class: 'ch-todos' }, ...todos));
+    const details = [st && st.version ? '서버 ' + st.version : '', c.memo].filter(Boolean);
+    if (details.length) box.append(el('p', { class: 'aa-ver' }, details.join(' · ')));
+    return box;
+  }
+  function didakoBox(c) {
+    const box = el('div', { class: 'aa-app' }, el('p', { class: 'label' }, '디다코'));
+    if (!c.didako) box.append(el('p', { class: 'aa-off' }, '쓰지 않아요'));
+    else if (c.didakoStatus) {
+      const st = c.didakoStatus;
+      box.append(el('p', { class: st.errors > 0 ? 'aa-err' : 'aa-ver' },
+        '디다코 서버 ' + (st.version || '') + ' · 7일 오류 ' + (st.errors ?? 0)));
+    } else {
+      box.append(el('p', { class: 'aa-err' }, '답이 없어요'),
+        el('p', { class: 'hint' }, c.didakoErr || '서버 주소가 틀렸거나 꺼져 있을 수 있어요.'));
+    }
+    return box;
+  }
+  function telioBox() {
+    return el('div', { class: 'aa-app' }, el('p', { class: 'label' }, '텔리오'), el('p', { class: 'aa-off' }, '준비 중'));
+  }
+  function card(c) {
+    const st = c.status;
+    const bad = !st || isOld(st) || st.errors > 0 || (c.didako && (!c.didakoStatus || c.didakoStatus.errors > 0));
+    const codes = String(c.codes || '').split(',').map(code => code.trim()).filter(Boolean);
+    return el('section', { class: 'card aa-card' + (c.stopped ? ' stopped' : '') },
+      el('div', { class: 'aa-head' },
+        el('span', { class: 'ops-dot' + (bad ? ' bad' : ''), title: bad ? '살펴볼 것이 있어요' : '잘 이어져 있어요' }),
+        el('b', null, c.name),
+        c.kind === '테스트' ? el('span', { class: 'own-tag' }, '테스트') : null,
+        c.stopped ? el('span', { class: 'own-tag' }, '멈춤') : null),
+      el('div', { class: 'aa-codes' }, ...(codes.length ? codes.map(code => el('span', { class: 'aa-code' }, code)) : [el('span', { class: 'hint' }, '코드 없음')])),
+      koideBox(c), didakoBox(c), telioBox());
+  }
+
   const views = {
     loading: () => el('p', { class: 'loading' }, '불러오는 중…'),
     // 로그인 전
@@ -42,13 +93,15 @@
         el('p', { class: 'msg' }, S.msg),
         el('button', { class: 'btn wide', onclick: load }, '다시 해 보기'),
         el('button', { class: 'btn ghost wide', onclick: logout }, '로그아웃'))),
-    // 임시 화면: 받은 교회 수만. 교회 카드는 다음 PR
+    // 교회 카드는 서버가 준 순서 그대로
     home: () => {
       const n = S.churches.length, t = S.churches.filter(c => c.kind === '테스트').length;
+      const came = S.churches.reduce((sum, c) => sum + (Number(c.came) || 0), 0);
       return el('div', null,
         el('p', { class: 'eyebrow' }, '앱 관리자'),
         el('h1', null, '코이노비아 앱 관리'),
-        el('p', { class: 'aa-sum' }, '교회 ' + (n - t) + '곳 · 테스트 공간 ' + t + '곳'),
+        el('p', { class: 'aa-sum' }, '교회 ' + (n - t) + '곳 · 테스트 공간 ' + t + '곳 · 코드로 들어온 사람 ' + came + '명'),
+        S.churches.length ? el('div', { class: 'aa-grid' }, ...S.churches.map(card)) : el('p', { class: 'hint' }, '아직 교회가 없어요.'),
         el('footer', { class: 'aa-foot' },
           el('p', null, '기본 서버 ' + S.hubVersion),
           el('p', null, '내 카카오ID ' + S.me),
