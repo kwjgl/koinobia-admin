@@ -41,6 +41,10 @@
     logout: () => lsSet(KEY, null),
     // 앱 관리자 보기: { me, version, churches: [...] }. 앱 관리자가 아니면 code 'forbidden'(서버 문장 그대로)
     admin: () => call('admin'),
+    // 교회 더하기·고치기. 성공하면 admin()과 같은 값을 준다
+    saveChurch: data => call('churchSave', data),
+    // 첫 관리자 초대 링크: { link, until }
+    invite: id => call('invite', { id }),
     onSlow: fn => { slowHook = fn; }
   };
 })();

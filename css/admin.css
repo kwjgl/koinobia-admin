@@ -68,3 +68,22 @@ h2 { font-size: 1.05em; margin: 0; }
 .aa-app .label { font-size: .82em; font-weight: 600; color: var(--ink-2); margin: 0; }
 .aa-app .hint { margin: 0; }
 .aa-off { margin: 0; font-size: .85em; color: var(--ink-2); }
+
+.aa-head .link { margin-left: auto; }
+.aa-form { margin: 0; display: flex; flex-direction: column; gap: .5em; }
+.aa-form h2 { margin: 0 0 .2em; }
+label.f { display: block; font-size: .85em; font-weight: 600; margin: 12px 0 4px; }
+.aa-form label.f { margin: 6px 0 0; }
+.aa-form .hint { margin: 0; }
+.check { display: flex; align-items: center; gap: .5em; font-size: .92em; cursor: pointer; margin: 6px 0; }
+.check input { width: 1.2em; height: 1.2em; accent-color: var(--accent); }
+.actions { display: flex; gap: .5em; flex-wrap: wrap; align-items: center; }
+.link.quiet { color: var(--ink-2); font-weight: 500; }
+.label { font-size: .82em; font-weight: 600; color: var(--ink-2); margin: 0; }
+.aa-add { display: flex; align-items: center; justify-content: center; gap: .4em; min-height: 150px; border: 1.5px dashed var(--line-strong); border-radius: 16px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.aa-add span { font-size: 1.4em; line-height: 1; }
+.aa-add:hover, .aa-add:focus-visible { background: var(--surface); border-color: var(--accent); }
+.aa-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: .8em; border-top: 1px solid var(--line); }
+.aa-link { display: flex; flex-direction: column; gap: .5em; padding: .8em; border-radius: 12px; background: var(--accent-soft); }
+.aa-link code { font-size: .78em; word-break: break-all; user-select: all; color: var(--ink); }
+select.field { appearance: auto; }
