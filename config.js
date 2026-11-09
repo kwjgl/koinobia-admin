@@ -11,5 +11,5 @@ window.ADMIN_CONFIG = {
   // 코이데 app/index.html의 NEED_SERVER와 같게 손으로 맞춘다(서버 버전 앞 날짜)
   NEED_SERVER: '2026-11-08',
   // 이 화면의 버전. 푸터에 보인다
-  VERSION: '2026-11-09 뼈대'
+  VERSION: '2026-11-09 교회 카드'
 };
