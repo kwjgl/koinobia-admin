@@ -1,11 +1,11 @@
-/* 코이데(app/index.html)의 먹색(ink) 테마 어두운 값을 복사해 늘 어둡게 쓴다. 밝은 모드·기기 설정 분기는 두지 않는다.
+/* 코이데(app/index.html)의 먹색(ink) 테마 밝은 값을 복사해 늘 밝게 쓴다. 기기가 어두운 모드여도 바꾸지 않는다(어두운 모드 분기는 두지 않는다).
    코이데 색이 바뀌면 이 복사본도 손으로 맞춘다. 새 색은 만들지 않는다. */
 :root {
-  color-scheme: dark;
-  --page: #141414; --surface: #1D1D1C; --surface-2: #252524;
-  --ink: #ECECE8; --ink-2: #A3A39E; --line: #30302E; --line-strong: #4D4D4A;
-  --accent: #E2E2DC; --accent-mid: #6A6A65; --accent-soft: #2E2E2C; --on-accent: #141414;
-  --warn: #E2A563; --warn-soft: #3A2C1B;
+  color-scheme: light;
+  --page: #F4F4F2; --surface: #FFFFFF; --surface-2: #EDEDEA;
+  --ink: #1D1D1B; --ink-2: #62625E; --line: #E0E0DC; --line-strong: #BDBDB7;
+  --accent: #33332F; --accent-mid: #A3A39C; --accent-soft: #E6E6E1; --on-accent: #FFFFFF;
+  --warn: #9A5A14; --warn-soft: #F5E8D6;
   --base: 16px;
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
