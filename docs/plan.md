@@ -154,7 +154,7 @@ koinobia-admin/
 ## 5. 화면 설계
 
 ### 5-1. 모양: 코이데 것을 복사해서 쓴다
-- `app/index.html` 21~46줄의 색 변수(`--page --surface --surface-2 --ink --ink-2 --line --line-strong --accent --accent-mid --accent-soft --on-accent --warn --warn-soft` 등)를 `css/admin.css`로 **복사**한다. **늘 검은(어두운) 화면**: 먹색(ink) 테마의 어두운 값을 `:root`에 고정하고 `color-scheme: dark`. 밝은 모드와 기기 설정 분기는 두지 않는다. 코이데의 5가지 색 테마와 4가지 디자인 스타일(basic·new·classic·glass)은 가져오지 않는다(새 색을 만들지 않는다). 글꼴·크기도 코이데와 같게(Gowun Batang 제목, IBM Plex Sans KR 본문, 휴대폰 16px, PC 15px).
+- `app/index.html` 21~46줄의 색 변수(`--page --surface --surface-2 --ink --ink-2 --line --line-strong --accent --accent-mid --accent-soft --on-accent --warn --warn-soft` 등)를 `css/admin.css`로 **복사**한다. **먹색 테마(늘 밝게)**: 먹색(ink) 테마의 밝은 값을 `:root`에 고정하고 `color-scheme: light`. 어두운 모드와 기기 설정 분기는 두지 않는다. 코이데의 5가지 색 테마와 4가지 디자인 스타일(basic·new·classic·glass)은 가져오지 않는다(새 색을 만들지 않는다). 글꼴·크기도 코이데와 같게(Gowun Batang 제목, IBM Plex Sans KR 본문, 휴대폰 16px, PC 15px).
 - `.card .btn .btn.ghost .btn.small .link .field .hint .eyebrow .ch-todo .own-tag .ops-dot .aa-*`(index.html 1003·1090~1116줄 근처)의 규칙을 같은 이름으로 복사한다. 새 버튼·카드는 이 중 비슷한 것을 본뜬다.
 - 터치 영역 44px 이상, 휴대폰 한 줄 / PC 카드가 나란히(`aa-grid`의 `repeat(auto-fill, minmax(min(100%, 320px), 1fr))`).
 - 이모지·장식은 넣지 않는다(설계서 9장: 더보기·관리 화면에는 이모지를 넣지 않는다).
@@ -244,11 +244,11 @@ koinobia-admin/
 
 | PR | 저장소 / 브랜치 | 내용(바뀌는 파일) | 확인 방법 |
 |---|---|---|---|
-| **1-1** | koinobia-admin / `claude/admin-skeleton` | 규칙 파일, README, `docs/design.md`·`setup.md`, `index.html`, `config.js`, `css/admin.css`, `js/api.js`, `js/auth.js`, `js/app.js`(로그인 화면, 앱 관리자 아님 화면), `js/demo.js`, `CNAME` | 새 화면 + 보안(로그인)이므로 **휴대폰·PC(늘 어두운 화면)**(`?demo`). 실제 카카오 로그인은 사용자가 새 주소에서 해 보고 "앱 관리자 아님 + 내 카카오ID" 문구까지 확인 |
-| **1-2** | koinobia-admin / `claude/admin-cards` | 카드 목록(읽기만): 요약, 교회 카드, 코이데·디다코 칸, 서버 상태, "답이 없어요", 텔리오 자리, 푸터 | 같은 기준(어두운 화면). 실제: 사용자가 로그인해 지금 `?appadmin`과 숫자·버전이 같은지 나란히 비교 |
-| **1-3** | koinobia-admin / `claude/admin-edit` | 교회·테스트 공간 더하기·고치기·멈춤(디다코 주소 포함), 첫 관리자 초대 링크 상자 | 같은 기준(어두운 화면). 실제: **테스트 공간만** 고쳐 본다. 실제 교회 카드는 건드리지 않는다 |
+| **1-1** | koinobia-admin / `claude/admin-skeleton` | 규칙 파일, README, `docs/design.md`·`setup.md`, `index.html`, `config.js`, `css/admin.css`, `js/api.js`, `js/auth.js`, `js/app.js`(로그인 화면, 앱 관리자 아님 화면), `js/demo.js`, `CNAME` | 새 화면 + 보안(로그인)이므로 **휴대폰·PC(먹색 테마(늘 밝게))**(`?demo`). 실제 카카오 로그인은 사용자가 새 주소에서 해 보고 "앱 관리자 아님 + 내 카카오ID" 문구까지 확인 |
+| **1-2** | koinobia-admin / `claude/admin-cards` | 카드 목록(읽기만): 요약, 교회 카드, 코이데·디다코 칸, 서버 상태, "답이 없어요", 텔리오 자리, 푸터 | 같은 기준(먹색 테마(늘 밝게)). 실제: 사용자가 로그인해 지금 `?appadmin`과 숫자·버전이 같은지 나란히 비교 |
+| **1-3** | koinobia-admin / `claude/admin-edit` | 교회·테스트 공간 더하기·고치기·멈춤(디다코 주소 포함), 첫 관리자 초대 링크 상자 | 같은 기준(먹색 테마(늘 밝게)). 실제: **테스트 공간만** 고쳐 본다. 실제 교회 카드는 건드리지 않는다 |
 | **1-4** | pray-for / `claude/hub-enter-pass` | 6-3 파일들(`enterPass`, `enterOpen`, 코이데 `#enter=` 착륙, sw.js 번호, 결정 기록) | 휴대폰 폭 밝은 화면 한 장 + 서버 로직은 사용자 배포 뒤 확인 |
-| **1-5** | koinobia-admin / `claude/admin-enter` | "이 교회로 들어가기" 버튼(코이데·디다코) | 같은 기준(어두운 화면). 코이데로 들어가기를 테스트 공간으로 확인. 디다코는 1-6 뒤 |
+| **1-5** | koinobia-admin / `claude/admin-enter` | "이 교회로 들어가기" 버튼(코이데·디다코) | 같은 기준(먹색 테마(늘 밝게)). 코이데로 들어가기를 테스트 공간으로 확인. 디다코는 1-6 뒤 |
 | **1-6** | gbs(디다코) / 디다코 쪽 브랜치 | 디다코 노트 `#enter=` 착륙 (**이 세션 밖. 디다코 세션이 맡는다.** 이 계획서의 6-1을 그대로 건네면 된다) | 디다코 저장소 규칙에 따라 |
 | **1-7** | pray-for / `claude/appadmin-redirect` | **새 페이지가 확인된 뒤**(한 주 기다리지 않는다): 코이데 교회 전체 화면의 "앱 관리자 보기 ›"를 새 주소로 바꾸고, 옛 `?appadmin` 화면 코드와 `hubApi` 쓰임을 정리, 설계서 2·13장·hub README의 `?appadmin` 설명을 새 페이지로 바꿈, sw.js 번호, 결정 기록 | 휴대폰 폭 한 장. 이 PR 전까지 옛 화면은 그대로 둔다(10장) |
 
@@ -307,7 +307,7 @@ koinobia-admin/
 1. 저장소는 **공개**. 주소는 `admin.koinobia.com`(GitHub Pages, `CNAME` 파일).
 2. 서버는 지금 **기본 서버(pray-for `apps-script/hub/`)를 그대로** 쓴다. 새 서버 없음. 기본 서버 코드는 당분간 pray-for에 두고 3단계에서 옮길지 다시 정한다.
 3. "이 교회로 들어가기"는 **일회용 통행증(`enterPass`/`enterOpen`)** 방식이다. 1-1 PR에서는 만들지 않는다(1-4, 1-5).
-4. 화면 색은 **늘 검은(어두운) 화면**. 코이데 먹색 테마의 어두운 값을 고정하고 밝은 모드는 두지 않는다. 기기 설정과 상관없이 늘 어둡다.
+4. 화면 색은 **먹색 테마(늘 밝게)**. 코이데 먹색 테마의 밝은 값을 고정하고 어두운 모드는 두지 않는다. 기기 설정과 상관없이 늘 밝다.
 5. 옛 `?appadmin`은 새 페이지가 확인되면 바로 없앤다(한 주 기다리지 않음, 1-7).
 6. 관리자가 명단에서 사람을 뺄 때 **디다코 기록은 지우지 않는다**. 지우기는 본인이 나갈 때만 한다.
 7. 디다코 교회 관리자를 누가 세울지는 **3단계에서** 정한다. 당분간 앱 운영자가 겸한다.

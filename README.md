@@ -4,7 +4,7 @@
 
 - 빌드 없는 정적 페이지다(`index.html`, `config.js`, `css/`, `js/`).
 - 서버는 새로 만들지 않고 지금 기본 서버(pray-for 저장소 `apps-script/hub/`)를 그대로 쓴다. 서버를 부르는 코드는 `js/api.js` 한 파일에만 있다.
-- 늘 검은(어두운) 화면이다.
+- 화면 색은 코이데 먹색 테마이고 늘 밝다.
 - 이 저장소는 공개다. 비밀값(`HUB_SECRET`, 카카오 Client Secret, 앱 관리자 목록, 시트 주소)은 두지 않는다.
 - `?demo`, `?demo=out`, `?demo=notadmin`으로 열면 가짜 서버로 화면을 볼 수 있다(지어낸 이름만).
 
