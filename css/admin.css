@@ -1,0 +1,46 @@
+/* 코이데(app/index.html)의 먹색(ink) 테마 어두운 값을 복사해 늘 어둡게 쓴다. 밝은 모드·기기 설정 분기는 두지 않는다.
+   코이데 색이 바뀌면 이 복사본도 손으로 맞춘다. 새 색은 만들지 않는다. */
+:root {
+  color-scheme: dark;
+  --page: #141414; --surface: #1D1D1C; --surface-2: #252524;
+  --ink: #ECECE8; --ink-2: #A3A39E; --line: #30302E; --line-strong: #4D4D4A;
+  --accent: #E2E2DC; --accent-mid: #6A6A65; --accent-soft: #2E2E2C; --on-accent: #141414;
+  --warn: #E2A563; --warn-soft: #3A2C1B;
+  --base: 16px;
+  --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
+  --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+@media (min-width: 1000px) { :root { --base: 15px; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; -webkit-tap-highlight-color: transparent; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button, a { touch-action: manipulation; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+h1 { font-family: var(--f-display); font-size: 1.65em; line-height: 1.3; margin: .3em 0 .2em; }
+h2 { font-size: 1.05em; margin: 0; }
+.eyebrow { font-size: .8em; color: var(--ink-2); margin: 1em 0 0; }
+.hint { font-size: .82em; color: var(--ink-2); margin: .4em 0 0; }
+.loading { color: var(--ink-2); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 12px 0; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4em; min-height: 44px; padding: 0 1.1em; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.small { min-height: 36px; padding: 0 .8em; font-size: .88em; border-radius: 10px; }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: .5; cursor: default; }
+.link { background: none; border: 0; padding: .3em .2em; color: var(--accent); font-weight: 600; font-size: .88em; min-height: 36px; cursor: pointer; }
+.field { width: 100%; min-height: 44px; padding: .5em .75em; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); }
+.btn:focus-visible, .link:focus-visible, .field:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 로그인 전·앱 관리자 아님 화면 */
+.gate { max-width: 440px; margin: 12vh auto 0; }
+.gate .card { display: flex; flex-direction: column; gap: .8em; }
+.gate .msg { margin: 0; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; }
+.gate .err { margin: 0; font-size: .88em; color: var(--warn); }
+/* 임시 화면(교회 수) */
+.aa-sum { color: var(--ink-2); font-size: .9em; margin: 2px 0 14px; }
+.aa-foot { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+.aa-foot p { margin: 0; font-size: .78em; color: var(--ink-2); overflow-wrap: anywhere; }
+.aa-foot .link { margin-left: auto; }
+.toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
+.toast[hidden] { display: none; }
