@@ -39,7 +39,8 @@
 
 ## 데이터와 비밀값
 - 실제 교회 이름·사람 이름·기도제목은 올리지 않는다. 데모는 지어낸 이름만.
-- `HUB_SECRET`, 카카오 Client Secret, 앱 관리자 카카오ID 목록, 시트 주소, 운영 웹 앱 주소는 커밋하지 않는다. 커밋 전에 `grep -rniE "secret|spreadsheets|script.google.com/macros/s/" .`를 돌린다.
+- `HUB_SECRET`, 카카오 Client Secret, 앱 관리자 카카오ID 목록, 시트 주소, 운영 웹 앱 주소는 커밋하지 않는다(아래 예외 하나). 커밋 전에 `grep -rniE "secret|spreadsheets|script.google.com/macros/s/" .`를 돌린다.
+- 예외: `config.js`의 `HUB_URL`(기본 서버 웹 앱 주소)과 `KAKAO_REST_KEY`(카카오 REST API 키)는 공개 값이라 커밋한다. 코이데 공개 저장소(koide)의 `app/config.js`에도 있는 값이고, 주소를 알아도 앱 관리자 카카오 계정이 아니면 아무것도 볼 수 없다. 위 검사에서 `config.js`의 `HUB_URL` 한 줄이 걸리는 것은 괜찮다. 다른 파일에 이 주소를 옮겨 적지 않는다.
 
 ## 문서
 - 새로 정한 것은 `docs/design.md` 결정 기록에 날짜와 이유를 남긴다. 설계의 기준은 `docs/design.md` 하나다.
