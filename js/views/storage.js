@@ -1,34 +1,16 @@
 /* 저장 공간: admin_db_size 결과. 사람 수가 아니라 서버 크기라 가리지 않는다.
-   막대는 SVG 속성으로만 그린다(style 속성 없음). 모양은 CSS 클래스로 정한다. */
+   반원 게이지는 SVG 속성으로만 그린다(style 속성 없음). 모양은 CSS 클래스로 정한다. */
 (function () {
   const { el } = UI;
-  const NS = 'http://www.w3.org/2000/svg';
   const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const mb = b => (num(b) / 1048576).toFixed(1) + 'MB';
-
-  function svg(tag, attrs, ...kids) {
-    const n = document.createElementNS(NS, tag);
-    Object.entries(attrs || {}).forEach(([k, v]) => n.setAttribute(k, v));
-    kids.forEach(k => n.append(k));
-    return n;
-  }
-  function bar(pct) {
-    const W = 300, x = Math.max(0, Math.min(100, pct)) * W / 100;
-    return svg('svg', { class: 'st-bar', viewBox: '0 0 300 30', role: 'img', 'aria-label': '저장 공간 ' + pct + '% 사용' },
-      svg('rect', { class: 'st-track', x: 0, y: 0, width: W, height: 14, rx: 7 }),
-      svg('rect', { class: 'st-fill' + (pct >= 90 ? ' bad' : pct >= 70 ? ' warn' : ''), x: 0, y: 0, width: x, height: 14, rx: 7 }),
-      svg('line', { class: 'st-tick', x1: W * .7, y1: 0, x2: W * .7, y2: 18 }),
-      svg('line', { class: 'st-tick', x1: W * .9, y1: 0, x2: W * .9, y2: 18 }),
-      svg('text', { class: 'st-lab', x: W * .7, y: 28, 'text-anchor': 'middle' }, '70%'),
-      svg('text', { class: 'st-lab', x: W * .9, y: 28, 'text-anchor': 'middle' }, '90%'));
-  }
 
   function render(d) {
     const pct = num(d.percent), tables = Array.isArray(d.top_tables) ? d.top_tables : [];
     const kids = [el('h1', null, '저장 공간'),
       el('div', { class: 'card' },
-        el('p', { class: 'st-big' }, pct + '% 사용 중'),
-        bar(pct),
+        el('p', { class: 'st-big' }, mb(d.bytes) + ' 사용 중'),
+        Charts.gauge(pct, { label: '저장 공간 ' + pct + '% 사용. 70%에서 주의, 90%에서 한도 임박', sub: '사용 중' }),
         el('p', { class: 'hint' }, mb(d.bytes) + ' / ' + mb(d.limit_bytes))),
     ];
     if (pct >= 90) kids.push(el('div', { class: 'card st-note bad' }, el('p', { class: 'msg' }, '한도에 거의 다 왔어요. Supabase Pro나 정리를 알아보세요.')));
