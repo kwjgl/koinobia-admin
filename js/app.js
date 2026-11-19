@@ -130,6 +130,8 @@
       try { d = await api.dbSize(); } catch (e) { return my === S.seq && fail(e); }
       if (my !== S.seq) return;
       body = Views.storage.render(d);
+    } else if (cur === 'usage') {
+      body = Views.stats.render();
     } else body = soon(MENU.find(x => x[0] === cur)[1]);
     paint(el('div', null, menu(cur), body, footer()));
   }

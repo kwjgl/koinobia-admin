@@ -143,3 +143,49 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .st-tbl th { color: var(--ink-2); font-weight: 600; font-size: .85em; }
 .st-tbl td:nth-child(n+2), .st-tbl th:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .st-tbl tr:last-child td { border-bottom: 0; }
+
+/* 이용 통계(그래프). 색은 위의 변수만 쓴다. 스타일 속성은 쓰지 않고 SVG 속성과 이 클래스로만 정한다 */
+.us-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+.us-ctl .field, .us-tools .field { width: auto; min-width: 7em; }
+.us-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: .6em 0; }
+.us-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px; scrollbar-width: thin; }
+.us-tab { flex: none; min-height: 44px; padding: 0 .9em; border-radius: 12px; border: 1px solid var(--line-strong); background: transparent; color: var(--ink-2); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.us-tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.us-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.us-card h2 { margin-bottom: .1em; }
+.us-card .msg { margin: 0; }
+.us-card .btn[aria-pressed="true"] { background: var(--accent-soft); }
+.us-tblw { overflow-x: auto; margin-top: .4em; }
+.us-pick { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.us-pick .hint { margin: 0; flex: none; min-width: 3.2em; }
+.us-pick .field { width: 100%; }
+.us-det summary { cursor: pointer; font-weight: 600; min-height: 36px; }
+.gr-view { margin-top: .5em; }
+.gr-svg { display: block; width: 100%; max-width: 480px; height: auto; }
+.gr-grid { stroke: var(--line); stroke-width: 1; }
+.gr-txt { fill: var(--ink-2); font-size: 10.5px; }
+.gr-lab { fill: var(--ink); font-size: 12px; }
+.gr-val { fill: var(--ink); font-size: 11px; font-weight: 600; }
+.gr-line { fill: none; stroke: var(--accent); stroke-width: 2; }
+.gr-dot { fill: var(--accent); }
+.gr-band { fill: var(--surface-2); }
+.gr-bar { fill: var(--accent); }
+.gr-bar.part { fill: var(--accent-mid); }
+.gr-hmask { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 2; }
+.gr-cell { fill: var(--surface-2); }
+.gr-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: .5em; font-size: .78em; color: var(--ink-2); }
+.gr-keyi { display: inline-flex; align-items: center; gap: .4em; }
+.gr-sw { width: 18px; height: 12px; flex: none; }
+.gr-tools { margin-top: .2em; }
+.gr-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5em, 1fr)); gap: 8px; margin: .8em 0 0; }
+.gr-tiles div { background: var(--surface-2); border-radius: 12px; padding: .6em .7em; min-width: 0; }
+.gr-tiles dt { font-size: .75em; color: var(--ink-2); }
+.gr-tiles dd { margin: .1em 0 0; font-family: var(--f-display); font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gr-tiles dd.mask { font-family: var(--f-body); font-size: .85em; font-weight: 500; color: var(--ink-2); }
+.gr-tiles dd.note { font-family: var(--f-body); font-size: .72em; font-weight: 400; color: var(--ink-2); }
+.us-coh td.l1 { background: var(--surface-2); }
+.us-coh td.l2 { background: var(--accent-soft); }
+.us-coh td.l3 { background: var(--accent-mid); }
+.us-coh td.l4 { background: var(--accent); color: var(--on-accent); }
+.us-coh td.mask { color: var(--ink-2); font-size: .85em; }
+.us-tblw .st-tbl td:first-child { white-space: nowrap; }
