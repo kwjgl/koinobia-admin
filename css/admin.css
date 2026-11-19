@@ -57,7 +57,7 @@ h2 { font-size: 1.05em; margin: 0; }
 .aa-head { display: flex; align-items: center; gap: .5em; min-width: 0; }
 .aa-head b { font-size: 1.05em; overflow-wrap: anywhere; }
 .aa-codes { display: flex; flex-wrap: wrap; gap: 6px; }
-.aa-code { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: .85em; letter-spacing: .08em; padding: .2em .65em; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.aa-code { margin: 0; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: .85em; letter-spacing: .08em; padding: .2em .65em; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .aa-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0; }
 .aa-stats div { background: var(--surface-2); border-radius: 10px; padding: .55em .3em; text-align: center; min-width: 0; }
 .aa-stats dt { font-size: .7em; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -87,3 +87,15 @@ label.f { display: block; font-size: .85em; font-weight: 600; margin: 12px 0 4px
 .aa-link { display: flex; flex-direction: column; gap: .5em; padding: .8em; border-radius: 12px; background: var(--accent-soft); }
 .aa-link code { font-size: .78em; word-break: break-all; user-select: all; color: var(--ink); }
 select.field { appearance: auto; }
+
+/* 메뉴 줄과 오늘 화면 */
+.aa-menu { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.aa-tab { flex: none; display: inline-flex; align-items: center; gap: .4em; min-height: 44px; padding: 0 .9em; border-radius: 12px; color: var(--ink-2); text-decoration: none; font-weight: 600; white-space: nowrap; }
+.aa-tab[aria-current="page"] { background: var(--accent); color: var(--on-accent); }
+.aa-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.aa-badge { font-size: .72em; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: .05em .55em; }
+.td-rows { display: flex; flex-direction: column; }
+.td-row { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 6px 0; color: var(--ink); text-decoration: none; min-height: 52px; }
+a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: none; }
+.td-label { color: var(--ink-2); }
+.td-val { font-variant-numeric: tabular-nums; text-align: right; }
