@@ -25,9 +25,9 @@
     const t = (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
     return withTime ? t + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : t;
   }
-  // 코이데 앱이 하는 대로: 시작 주소 + ?opsjoin=토큰 + &church=교회코드(열린 코드가 있을 때)
-  function inviteUrl(token, code) {
-    return String((CFG.APPS || {}).koide || '') + '?opsjoin=' + encodeURIComponent(token) + (code ? '&church=' + encodeURIComponent(code) : '');
+  // 서버(036)가 주는 링크 모양 그대로: 코이데 시작 주소 + ?opsjoin=토큰 (교회 코드는 붙이지 않는다)
+  function inviteUrl(token) {
+    return String((CFG.APPS || {}).koide || '') + '?opsjoin=' + encodeURIComponent(token);
   }
 
   function render(first) {
@@ -140,13 +140,13 @@
         return el('div', { class: 'aa-form' },
           el('p', { class: 'msg' }, '새 초대 링크를 만들면 쓰지 않은 예전 초대는 거두어져요.'), err,
           el('div', { class: 'actions' },
-            el('button', { class: 'btn small', type: 'button', onclick: () => act(err, () => api.churchInvite(c.id), r => { st.invite[c.id] = { token: r.token, expires: r.expires, code: openCode(c) }; }, '초대 링크를 만들었어요.') }, '링크 만들기'),
+            el('button', { class: 'btn small', type: 'button', onclick: () => act(err, () => api.churchInvite(c.id), r => { st.invite[c.id] = { token: r.token, expires: r.expires }; }, '초대 링크를 만들었어요.') }, '링크 만들기'),
             closeBtn(c)));
       }
       return inviteBox(c, v);
     }
     function inviteBox(c, v) {
-      const url = inviteUrl(v.token, v.code);
+      const url = inviteUrl(v.token);
       return el('div', { class: 'aa-link' },
         el('p', { class: 'msg' }, when(v.expires) + '까지 한 번만 쓸 수 있어요.'),
         el('code', null, url),
@@ -155,7 +155,6 @@
             try { await navigator.clipboard.writeText(url); toast('링크를 복사했어요.'); } catch (e) { toast('복사하지 못했어요. 링크를 길게 눌러 복사해 주세요.'); }
           } }, '링크 복사'), closeBtn(c)));
     }
-    const openCode = c => { const x = c.codes.find(k => k.status === '열림'); return x ? x.code : ''; };
 
     function card(c) {
       const kind = st.open[c.id];
@@ -204,7 +203,7 @@
         actions.replaceChildren(el('p', { class: 'msg' }, '이 ' + kind.value + '를 만들까요? 되돌릴 수 없어요.'),
           el('button', { class: 'btn small', type: 'button', onclick: () => act(err, () => api.churchCreate(n, kind.value, c, d), r => {
             setList(r); st.add = false;
-            if (r.made) { st.open[r.made.churchId] = 'invite'; st.invite[r.made.churchId] = { token: r.made.token, expires: r.made.expires, code: r.made.code }; st.focus = r.made.churchId; }
+            if (r.made) { st.open[r.made.churchId] = 'invite'; st.invite[r.made.churchId] = { token: r.made.token, expires: r.made.expires }; st.focus = r.made.churchId; }
           }, '교회를 만들었어요. 아래 초대 링크를 첫 관리자에게 보내 주세요.') }, '만들기'),
           el('button', { class: 'btn small ghost', type: 'button', onclick: edit }, '다시 고치기'));
       }
