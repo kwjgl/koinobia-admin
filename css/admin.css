@@ -161,7 +161,7 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .us-pick .field { width: 100%; }
 .us-det summary { cursor: pointer; font-weight: 600; min-height: 36px; }
 .gr-view { margin-top: .5em; }
-.gr-svg { display: block; width: 100%; max-width: 480px; height: auto; }
+.gr-svg { display: block; width: 100%; height: auto; }
 .gr-grid { stroke: var(--line); stroke-width: 1; }
 .gr-txt { fill: var(--ink-2); font-size: 10.5px; }
 .gr-lab { fill: var(--ink); font-size: 12px; }

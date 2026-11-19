@@ -5,6 +5,7 @@
   const { el, toast } = UI;
   const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
   const MASK = '5명 미만이라 가렸어요';
+  const MASK_PLACE = '5곳 미만이라 가렸어요';   // 공동체 수를 세는 칸
 
   function when(v) {
     const d = new Date(v);
@@ -13,8 +14,8 @@
   const ymd = v => (v ? String(v).slice(0, 10) : '-');
 
   // 5명 미만 가림 값은 0이 아니라 안내 글로 보인다
-  function stat(label, o, fmt) {
-    return el('div', null, el('dt', null, label), el('dd', { class: o && o.small ? 'st-mask' : null }, o && !o.small ? fmt(o) : MASK));
+  function stat(label, o, fmt, mask) {
+    return el('div', null, el('dt', null, label), el('dd', { class: o && o.small ? 'st-mask' : null }, o && !o.small ? fmt(o) : (mask || MASK)));
   }
 
   // 상세(신고 목록 포함)와 닫기. onClosed는 닫은 뒤 목록을 새로 받아 오라는 신호
@@ -112,9 +113,9 @@
       const kids = [el('h1', null, '공동체'),
         el('p', { class: 'eyebrow' }, '지금 상태'),
         el('div', { class: 'card' }, el('dl', { class: 'aa-stats three' },
-          stat('열림', bs['열림'], o => o.n + '곳'), stat('끝맺음', bs['끝맺음'], o => o.n + '곳'), stat('닫음', bs['닫음'], o => o.n + '곳'),
+          stat('열림', bs['열림'], o => o.n + '곳', MASK_PLACE), stat('끝맺음', bs['끝맺음'], o => o.n + '곳', MASK_PLACE), stat('닫음', bs['닫음'], o => o.n + '곳', MASK_PLACE),
           stat('열린 곳 평균 인원', h.avg_members_open, o => (Math.round(num(o.v) * 10) / 10) + '명'),
-          stat('14일 안에 끝나는 곳', h.ending_14d, o => o.n + '곳')),
+          stat('14일 안에 끝나는 곳', h.ending_14d, o => o.n + '곳', MASK_PLACE)),
           el('p', { class: 'hint' }, '공동체가 5곳 미만이면 숫자를 가려요.')),
         el('p', { class: 'eyebrow' }, '신고가 들어온 공동체')];
       if (!items.length) kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, '새 신고가 없어요.')));

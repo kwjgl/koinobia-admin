@@ -4,7 +4,7 @@
 (function () {
   const { el } = UI;
   const NS = 'http://www.w3.org/2000/svg';
-  const W = 360;                                   // 모든 그래프의 가로 눈금(viewBox)
+  const W = window.innerWidth >= 700 ? 720 : 360;  // 모든 그래프의 가로 눈금(viewBox). 넓은 화면은 눈금을 넓혀 글씨가 커지지 않게 한다
   const MASK = '5명 미만';
   const DASH = ['', '6 3', '1.5 3.5'];             // 실선·점선·점점선
 
@@ -142,7 +142,7 @@
   // ---- 가로 막대: rows [{label, v|null, text}] 줄마다 이름 위, 막대 아래. null이면 점선 + "5명 미만" ----
   function barsH(rows, o) {
     o = o || {};
-    const RH = 36, BX = 0, BW = 250, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
+    const RH = 36, BX = 0, BW = W - 110, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
     const top = Math.max(o.max || 0, ...rows.map(r => r.v).filter(v => v != null)) || 1;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '가로 막대 그래프' });
     rows.forEach((r, i) => {
@@ -160,7 +160,7 @@
 
   // ---- 시간대 지도: cells [{dow(0=일), hour, events:{n,small}}] 사건이 있는 칸만 온다 ----
   function heat(cells) {
-    const days = ['일', '월', '화', '수', '목', '금', '토'], L = 20, T = 14, cw = 14, ch = 16, H = T + 7 * ch + 4;
+    const days = ['일', '월', '화', '수', '목', '금', '토'], L = 20, T = 14, cw = Math.floor((W - 20 - 4) / 24), ch = 16, H = T + 7 * ch + 4;
     const map = new Map(cells.map(c => [c.dow + '-' + c.hour, c]));
     const vals = cells.map(c => pick(c.events, 'n')).filter(v => v != null), max = Math.max(1, ...vals);
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': '요일과 시간대 지도' });
@@ -182,7 +182,7 @@
 
   // ---- 깔때기: steps [{label, users:{n,small}, from_prev, from_first}] 가려진 단계와 그 뒤는 가림 ----
   function funnel(steps) {
-    const RH = 48, BW = 230, H = Math.max(RH, steps.length * RH);
+    const RH = 48, BW = W - 130, H = Math.max(RH, steps.length * RH);
     const first = pick(steps[0] && steps[0].users, 'n');
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': '단계별 흐름 깔때기' });
     let masked = false;
