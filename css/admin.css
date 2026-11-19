@@ -1,11 +1,15 @@
-/* 코이데(app/index.html)의 먹색(ink) 테마 밝은 값을 복사해 늘 밝게 쓴다. 기기가 어두운 모드여도 바꾸지 않는다(어두운 모드 분기는 두지 않는다).
-   코이데 색이 바뀌면 이 복사본도 손으로 맞춘다. 새 색은 만들지 않는다. */
+/* 코이데(app/index.html)의 기본(초록) 테마 밝은 값을 복사해 늘 밝게 쓴다. 기기가 어두운 모드여도 바꾸지 않는다(어두운 모드 분기는 두지 않는다).
+   코이데 색이 바뀌면 이 복사본도 손으로 맞춘다. 화면 색은 코이데 변수만 쓰고, 그래프는 아래 그래프 전용 팔레트(--chart-*, --seq-*)만 쓴다. */
 :root {
   color-scheme: light;
-  --page: #F4F4F2; --surface: #FFFFFF; --surface-2: #EDEDEA;
-  --ink: #1D1D1B; --ink-2: #62625E; --line: #E0E0DC; --line-strong: #BDBDB7;
-  --accent: #33332F; --accent-mid: #A3A39C; --accent-soft: #E6E6E1; --on-accent: #FFFFFF;
+  --page: #E8EBE8; --surface: #F7F8F6; --surface-2: #E9EDEA;
+  --ink: #1B2523; --ink-2: #5B6965; --line: #D7DEDA; --line-strong: #B9C4BF;
+  --accent: #2B6A62; --accent-mid: #8DBDB5; --accent-soft: #DCEBE7; --on-accent: #FFFFFF;
   --warn: #9A5A14; --warn-soft: #F5E8D6;
+  /* 그래프 전용 팔레트. 구분(chart): 첫 색은 --accent, 나머지는 밝은 바탕에서 서로 구분되고 색각 이상에도 구분되는 순서(검증 도구로 확인). 같은 이름은 늘 같은 색.
+     차례(seq): --accent-soft에서 --accent까지 다섯 단계(히트맵·코호트). chart-other는 '그 밖·알 수 없음'. */
+  --chart-1: #2B6A62; --chart-2: #EB6834; --chart-3: #2A78D6; --chart-4: #E87BA4; --chart-5: #EDA100; --chart-other: #5B6965;
+  --seq-1: #DCEBE7; --seq-2: #B0CBC6; --seq-3: #7FA8A1; --seq-4: #417B73; --seq-5: #2B6A62;
   --base: 16px;
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
@@ -128,12 +132,11 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .cm-detail { margin-top: .2em; }
 .cm-rep { padding-top: .5em; border-top: 1px solid var(--line); }
 .st-big { margin: 0 0 .5em; font-family: var(--f-display); font-size: 1.4em; font-weight: 700; }
-.st-bar { display: block; width: 100%; height: auto; }
-.st-track { fill: var(--surface-2); stroke: var(--line); }
-.st-fill { fill: var(--accent); }
-.st-fill.warn, .st-fill.bad { fill: var(--warn); }
-.st-tick { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 2 2; }
-.st-lab { fill: var(--ink-2); font-size: 9px; }
+.st-gauge { display: block; width: 100%; max-width: 320px; height: auto; margin: 0 auto; }
+.gr-gtrack { fill: none; stroke: var(--surface-2); stroke-width: 22; }
+.gr-gfill { fill: none; stroke: var(--chart-1); stroke-width: 22; }
+.gr-gfill.warn, .gr-gfill.bad { stroke: var(--warn); }
+.gr-gtick { stroke: var(--ink-2); stroke-width: 1.5; }
 .st-note { background: var(--accent-soft); }
 .st-note.bad { background: var(--warn-soft); }
 .st-note .msg { margin: 0; }
@@ -144,7 +147,7 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .st-tbl td:nth-child(n+2), .st-tbl th:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .st-tbl tr:last-child td { border-bottom: 0; }
 
-/* 이용 통계(그래프). 색은 위의 변수만 쓴다. 스타일 속성은 쓰지 않고 SVG 속성과 이 클래스로만 정한다 */
+/* 이용 통계(그래프). 색은 위의 그래프 전용 팔레트와 코이데 변수만 쓴다. 스타일 속성은 쓰지 않고 SVG 속성과 이 클래스로만 정한다 */
 .us-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
 .us-ctl .field, .us-tools .field { width: auto; min-width: 7em; }
 .us-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: .6em 0; }
@@ -166,16 +169,36 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .gr-txt { fill: var(--ink-2); font-size: 10.5px; }
 .gr-lab { fill: var(--ink); font-size: 12px; }
 .gr-val { fill: var(--ink); font-size: 11px; font-weight: 600; }
-.gr-line { fill: none; stroke: var(--accent); stroke-width: 2; }
-.gr-dot { fill: var(--accent); }
+.gr-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.gr-area { fill-opacity: .14; stroke: none; }
+.gr-dot { stroke: var(--surface); stroke-width: 1.5; }
+.gr-dot.hollow { fill: var(--surface); stroke-width: 2; }
 .gr-band { fill: var(--surface-2); }
-.gr-bar { fill: var(--accent); }
-.gr-bar.part, .gr-bar.mid { fill: var(--accent-mid); }
+.gr-bar { fill: var(--chart-1); }
+.gr-seg { stroke: var(--surface); stroke-width: 2; }
 .gr-hmask { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 2; }
 .gr-cell { fill: var(--surface-2); }
+.gr-lost { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1; stroke-dasharray: 3 2; }
+.gr-warn { fill: var(--warn); font-size: 11px; font-weight: 600; }
+.gr-big { fill: var(--ink); font-size: 20px; font-weight: 700; }
+.gr-box { fill-opacity: .3; stroke-width: 1.5; }
+.gr-med { stroke: var(--ink); stroke-width: 2.5; }
+.gr-white { fill: #FFFFFF; font-size: 11px; font-weight: 600; }
+.gr-f1 { fill: var(--chart-1); } .gr-s1 { stroke: var(--chart-1); }
+.gr-f2 { fill: var(--chart-2); } .gr-s2 { stroke: var(--chart-2); }
+.gr-f3 { fill: var(--chart-3); } .gr-s3 { stroke: var(--chart-3); }
+.gr-f4 { fill: var(--chart-4); } .gr-s4 { stroke: var(--chart-4); }
+.gr-f5 { fill: var(--chart-5); } .gr-s5 { stroke: var(--chart-5); }
+.gr-fo { fill: var(--chart-other); } .gr-so { stroke: var(--chart-other); }
+.gr-fq1 { fill: var(--seq-1); } .gr-sq1 { stroke: var(--seq-1); }
+.gr-fq2 { fill: var(--seq-2); } .gr-sq2 { stroke: var(--seq-2); }
+.gr-fq3 { fill: var(--seq-3); } .gr-sq3 { stroke: var(--seq-3); }
+.gr-fq4 { fill: var(--seq-4); } .gr-sq4 { stroke: var(--seq-4); }
+.gr-fq5 { fill: var(--seq-5); } .gr-sq5 { stroke: var(--seq-5); }
 .gr-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: .5em; font-size: .78em; color: var(--ink-2); }
 .gr-keyi { display: inline-flex; align-items: center; gap: .4em; }
 .gr-sw { width: 18px; height: 12px; flex: none; }
+.gr-sw.wide { width: 46px; }
 .gr-tools { margin-top: .2em; }
 .gr-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5em, 1fr)); gap: 8px; margin: .8em 0 0; }
 .gr-tiles div { background: var(--surface-2); border-radius: 12px; padding: .6em .7em; min-width: 0; }
@@ -183,10 +206,9 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .gr-tiles dd { margin: .1em 0 0; font-family: var(--f-display); font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gr-tiles dd.mask { font-family: var(--f-body); font-size: .85em; font-weight: 500; color: var(--ink-2); }
 .gr-tiles dd.note { font-family: var(--f-body); font-size: .72em; font-weight: 400; color: var(--ink-2); }
-.us-coh td.l1 { background: var(--surface-2); }
-.us-coh td.l2 { background: var(--accent-soft); }
-.us-coh td.l3 { background: var(--accent-mid); }
-.us-coh td.l4 { background: var(--accent); color: var(--on-accent); }
-.us-coh td.mask { color: var(--ink-2); font-size: .85em; }
+td.q1 { background: var(--seq-1); } td.q2 { background: var(--seq-2); } td.q3 { background: var(--seq-3); }
+td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--seq-5); color: #FFFFFF; }
+.us-coh td { border-bottom: 2px solid var(--surface); }
+.us-coh td.mask { color: var(--ink-2); font-size: .85em; border: 1px dashed var(--line-strong); }
 .us-tblw .st-tbl td:first-child { white-space: nowrap; }
 .us-sub { margin-top: 1.2em; font-size: .9em; color: var(--ink); }

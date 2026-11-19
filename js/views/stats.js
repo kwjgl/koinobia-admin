@@ -75,8 +75,8 @@
           const out = el('div', null);
           if (!seen.length) out.append(note('이 기간은 모두 ' + MASK_NOTE));
           out.append(C.figure({
-            svg: C.line(s.map(x => C.plabel(x.period, g)), [{ name: '활동한 사람', values: vals }], { label: '활동한 사람 꺾은선 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' + (seen.length ? ', 보이는 값은 ' + Math.min(...seen) + '명에서 ' + Math.max(...seen) + '명' : '') }),
-            legend: [['line', '활동한 사람'], ['mask', C.MASK + '이라 가린 기간']],
+            svg: C.line(s.map(x => C.plabel(x.period, g)), [{ name: '활동한 사람', values: vals }], { area: true, label: '활동한 사람 꺾은선 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' + (seen.length ? ', 보이는 값은 ' + Math.min(...seen) + '명에서 ' + Math.max(...seen) + '명' : '') }),
+            legend: [['s1', '활동한 사람'], ['mask', C.MASK + '이라 가린 기간']],
             table: { head: ['기간', '활동한 사람', '사건 수'], rows: s.map(x => [x.period, C.pick(x.active, 'n') == null ? null : C.fmtN(C.pick(x.active, 'n')), C.pick(x.events, 'n') == null ? null : C.fmtN(C.pick(x.events, 'n'))]) }
           }));
           // 1인당 평균 사건: 사람 수와 사건 수가 둘 다 보이는 가장 가까운 기간만
@@ -98,13 +98,13 @@
           const ms = d.months || [];
           if (!ms.length) return nothing('이 기간에는 기록이 없어요.');
           const vals = ms.map(m => C.pick(m.ratio, 'r')), seen = vals.filter(v => v != null);
-          const lab = m => { const x = /^(\d{4})-(\d{2})/.exec(m.month || ''); return x ? Number(x[2]) + '월' + (m.partial ? '*' : '') : String(m.month); };
+          const lab = m => { const x = /^(\d{4})-(\d{2})/.exec(m.month || ''); return x ? Number(x[2]) + '월' : String(m.month); };
           const num = (o, k) => C.pick(o, k) == null ? null : o[k];
           const out = el('div', null);
           if (!seen.length) out.append(note('모두 ' + MASK_NOTE));
           out.append(C.figure({
-            svg: C.barsV(ms.map((m, i) => ({ label: lab(m), v: vals[i] == null ? null : Math.round(vals[i] * 1000) / 10, partial: !!m.partial })), { fmt: v => v + '%', label: '고착도 막대 그래프. 달 ' + ms.length + '개, 가려진 달 ' + (ms.length - seen.length) + '개' + (ms.some(m => m.partial) ? ', 이번 달은 진행 중' : '') }),
-            legend: [['bar', '고착도(달 단위, 이번 달은 진행 중)'], ['mask', C.MASK + '이라 가림']],
+            svg: C.line(ms.map(lab), [{ name: '고착도', values: vals.map(v => v == null ? null : C.f1(v * 100)) }], { area: true, fmt: v => v + '%', top: Math.max(10, Math.ceil(Math.max(0, ...seen.map(v => v * 100)) * 1.25 / 5) * 5), partial: ms.map(m => !!m.partial), label: '고착도 꺾은선 그래프. 달 ' + ms.length + '개, 가려진 달 ' + (ms.length - seen.length) + '개' + (ms.some(m => m.partial) ? ', 이번 달은 진행 중' : '') + (seen.length ? ', 보이는 값은 ' + C.pct(Math.min(...seen)) + '에서 ' + C.pct(Math.max(...seen)) : '') }),
+            legend: [['s1', '고착도(달 단위)'], ['hollow', '이번 달(진행 중)'], ['mask', C.MASK + '이라 가린 달']],
             table: { head: ['달', '한 달 활동자', '하루 평균 활동자', '고착도', ''], rows: ms.map(m => [m.month, num(m.mau, 'n') == null ? null : C.fmtN(m.mau.n), num(m.dau_avg, 'v') == null ? null : String(m.dau_avg.v), C.pick(m.ratio, 'r') == null ? null : C.pct(m.ratio.r), m.partial ? '진행 중' : '']) }
           }));
           const done = ms.slice().reverse().find(m => !m.partial) || ms[ms.length - 1];
@@ -126,8 +126,8 @@
           if (!seen) out.append(note('이 기간은 모두 ' + MASK_NOTE));
           const cell = o => C.pick(o, 'n') == null ? null : C.fmtN(C.pick(o, 'n'));
           out.append(C.figure({
-            svg: C.barsV(cols, { label: '새로 온 사람과 다시 온 사람 막대 그래프. 기간 ' + s.length + '개, 둘 다 가려진 기간 ' + (s.length - seen) + '개' }),
-            legend: [['bar', '새로 온 사람'], ['mid', '다시 온 사람'], ['mask', C.MASK + '이라 가림']],
+            svg: C.barsStack(cols, ['새로 온 사람', '다시 온 사람'], { label: '새로 온 사람과 다시 온 사람 누적 막대 그래프. 기간 ' + s.length + '개, 둘 다 가려진 기간 ' + (s.length - seen) + '개' }),
+            legend: [['f1', '새로 온 사람'], ['f2', '다시 온 사람'], ['mask', C.MASK + '이라 가림']],
             table: { head: ['기간', '새로 온 사람', '다시 온 사람'], rows: s.map(x => [x.period, cell(x.new), cell(x.returning)]) }
           }));
           return out;
@@ -143,12 +143,17 @@
           if (!seen.length) out.append(note('이 기간은 모두 ' + MASK_NOTE));
           out.append(C.figure({
             svg: C.barsV(cols, { label: '새로 온 계정 막대 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' }),
-            legend: [['bar', '새 계정'], ['mask', C.MASK + '이라 가린 기간']],
+            legend: [['f1', '새 계정'], ['mask', C.MASK + '이라 가린 기간']],
             table: { head: ['기간', '새 계정', '누적'], rows: s.map(x => [x.period, cell(x.new), cell(x.cumulative)]) }
           }));
           out.append(C.tiles([{ label: '지금까지 모두', value: C.pick(d.cumulative_total, 'n') == null ? null : C.fmtN(C.pick(d.cumulative_total, 'n')) + '명' }]));
           out.append(el('p', { class: 'label' }, '로그인 방법'));
-          out.append(C.table(['기간', '카카오', '구글', '애플', '그 밖'], s.map(x => { const p = x.providers || {}; return [x.period, cell(p.kakao), cell(p.google), cell(p.apple), cell(p.other)]; })));
+          const PN = ['카카오', '구글', '애플', '그 밖'], pv = x => { const p = x.providers || {}; return [C.pick(p.kakao, 'n'), C.pick(p.google, 'n'), C.pick(p.apple, 'n'), C.pick(p.other, 'n')]; };
+          out.append(C.figure({
+            svg: C.stack100(s.map(x => ({ label: C.plabel(x.period, sg), vs: pv(x) })), PN, { keys: ['1', '2', '3', 'o'], label: '로그인 방법별 구성 비율 누적 막대 그래프. 기간 ' + s.length + '개' }),
+            legend: [['f1', '카카오'], ['f2', '구글'], ['f3', '애플'], ['fo', '그 밖'], ['mask', C.MASK + '이라 가림']],
+            table: { head: ['기간', '카카오', '구글', '애플', '그 밖'], rows: s.map(x => { const p = x.providers || {}; return [x.period, cell(p.kakao), cell(p.google), cell(p.apple), cell(p.other)]; }) }
+          }));
           return out;
         }, tk)
     ];
@@ -168,7 +173,7 @@
       const rr = rows(items, key), seen = rr.filter(x => x.v != null);
       const out = el('div', null);
       if (!seen.length) out.append(note('모두 ' + MASK_NOTE));
-      out.append(C.figure({ svg: C.barsH(rr, { label: label + ' 가로 막대 그래프. 기능 ' + items.length + '개, 가려진 기능 ' + (items.length - seen.length) + '개' }), legend: legend || [['bar', key === 'reach' ? '전체 활동자 중 비율' : '사람 수'], ['mask', C.MASK + '이라 가림']], table: tbl(items) }));
+      out.append(C.figure({ svg: C.barsH(rr, { label: label + ' 가로 막대 그래프. 기능 ' + items.length + '개, 가려진 기능 ' + (items.length - seen.length) + '개' }), legend: legend || [['f1', key === 'reach' ? '전체 활동자 중 비율' : '사람 수'], ['mask', C.MASK + '이라 가림']], table: tbl(items) }));
       return out;
     };
     return [
@@ -185,11 +190,11 @@
         if (!u.length) return nothing('모든 기능이 한 번 이상 쓰였어요.');
         return el('div', { class: 'ch-todos' }, ...u.map(i => el('span', { class: 'ch-todo warn' }, i.label)));
       }, tk),
-      card('오류', '오류가 난 사람 수예요(원인 글은 모으지 않아요).', null, load, d => bars((d.items || []).filter(i => i.kind === 'error'), 'users', '오류', [['bar', '사람 수'], ['mask', C.MASK + '이라 가림']]), tk),
+      card('오류', '오류가 난 사람 수예요(원인 글은 모으지 않아요).', null, load, d => bars((d.items || []).filter(i => i.kind === 'error'), 'users', '오류', [['f1', '사람 수'], ['mask', C.MASK + '이라 가림']]), tk),
       card('코이데 교회 화면', '교회 기능의 화면·행동을 한 묶음으로 접어 두었어요.', null, load, d => {
         const items = (d.items || []).filter(i => isChurch(i) && i.kind !== 'error');
         if (!items.length) return nothing('이 앱·기간에는 교회 묶음이 없어요.');
-        const det = el('details', { class: 'us-det' }, el('summary', null, '교회 화면 ' + items.length + '개 보기'), bars(items, 'users', '교회 화면', [['bar', '사람 수'], ['mask', C.MASK + '이라 가림']]));
+        const det = el('details', { class: 'us-det' }, el('summary', null, '교회 화면 ' + items.length + '개 보기'), bars(items, 'users', '교회 화면', [['f1', '사람 수'], ['mask', C.MASK + '이라 가림']]));
         return det;
       }, tk)
     ];
@@ -244,7 +249,7 @@
       if (v0 == null) wrap.append(note('첫 단계가 ' + MASK_NOTE));
       wrap.append(C.figure({
         svg: C.funnel(st),
-        legend: [['bar', '그 단계까지 온 사람'], ['mask', C.MASK + '이라 가림(그 뒤 단계도 가려요)']],
+        legend: [['f1', '그 단계까지 온 사람'], ['lost', '앞 단계에서 빠진 사람'], ['mask', C.MASK + '이라 가림(그 뒤 단계도 가려요)']],
         table: { head: ['단계', '사람 수', '앞 단계 대비', '첫 단계 대비'], rows: st.map(s => [s.label, C.pick(s.users, 'n') == null ? null : C.fmtN(C.pick(s.users, 'n')), s.from_prev ? (C.pick(s.from_prev, 'r') == null ? null : C.pct(C.pick(s.from_prev, 'r'))) : '-', s.from_first ? (C.pick(s.from_first, 'r') == null ? null : C.pct(C.pick(s.from_first, 'r'))) : '-']) }
       }));
       wrap.append(C.tiles([{ label: '활성화율 (첫 단계 대비 마지막 단계)', value: act == null ? null : C.pct(act), note: '최근 ' + d.days + '일' }]));
@@ -270,7 +275,7 @@
           const out = el('div', null);
           if (rows.every(r => r.rates.every(x => x == null))) out.append(note('모두 ' + MASK_NOTE));
           out.append(C.cohortTable(['처음 온 달', '처음 온 사람', '1주 뒤', '4주 뒤', '12주 뒤'], rows));
-          out.append(C.legend([['mask', '"가림"은 ' + C.MASK + '이거나 아직 그 주가 지나지 않은 칸']]));
+          out.append(C.legend([['ramp', '진할수록 다시 온 비율이 높아요'], ['mask', '"가림"은 ' + C.MASK + '이거나 아직 그 주가 지나지 않은 칸']]));
           return out;
         }, tk),
       card('한 달에 며칠 오나', '이 기간에 며칠 왔는지로 사람을 묶었어요(최대 90일까지 봐요).', null,
@@ -284,7 +289,7 @@
           if (!seen) out.append(note('모두 ' + MASK_NOTE));
           out.append(C.figure({
             svg: C.barsV(cols, { label: '사용 빈도 막대 그래프. 구간 ' + bs.length + '개, 가려진 구간 ' + (bs.length - seen) + '개' }),
-            legend: [['bar', '그 구간의 사람 수(가로축은 온 날 수)'], ['mask', C.MASK + '이라 가림']],
+            legend: [['f1', '그 구간의 사람 수(가로축은 온 날 수)'], ['mask', C.MASK + '이라 가림']],
             table: { head: ['온 날 수', '사람 수'], rows: bs.map(b => [name(b), C.pick(b.users, 'n') == null ? null : C.fmtN(b.users.n)]) }
           }));
           return out;
@@ -316,7 +321,7 @@
         if (!seen) out.append(note('모두 ' + MASK_NOTE));
         out.append(C.figure({
           svg: (() => { const s = C.heat(cs); s.setAttribute('aria-label', '요일과 시간대 지도. 기록이 있는 칸 ' + cs.length + '개, 가려진 칸 ' + (cs.length - seen) + '개'); return s; })(),
-          legend: [['bar', '사건이 있는 칸(진할수록 많아요)'], ['mask', C.MASK + '이라 가림'], ['empty', '기록 없음']],
+          legend: [['ramp', '진할수록 그 시간의 사건이 많아요'], ['mask', C.MASK + '이라 가림'], ['empty', '기록 없음']],
           table: { head: ['요일', '시간', '사건 수'], rows: cs.map(c => [days[c.dow] || '', c.hour + '시', C.pick(c.events, 'n') == null ? null : C.fmtN(C.pick(c.events, 'n'))]) }
         }));
         return out;
@@ -328,20 +333,22 @@
         if (!items.length) return nothing('보여 줄 항목이 없어요.');
         const out = el('div', null);
         if (items.every(i => C.pick(i.users, 'n') == null)) out.append(note('앱이 머문 시간을 보내기 시작하면 보여요. 이미 보내고 있다면 ' + MASK_NOTE));
+        const nm = i => i.label + (appName(i.app) ? ' (' + appName(i.app) + ')' : '');
+        const okOf = i => C.pick(i.users, 'n') != null && i.median_sec != null;
+        const rows = items.map(i => okOf(i) ? { label: nm(i), med: i.median_sec, p25: i.p25_sec, p75: i.p75_sec, avg: i.avg_sec } : { label: nm(i), med: null });
+        const shown = rows.filter(r => r.med != null).length;
+        out.append(C.figure({
+          svg: C.boxplot(rows, { fmt: v => secText(Math.round(v)), label: '머문 시간 상자 그림. 항목 ' + items.length + '개, 가려진 항목 ' + (items.length - shown) + '개' + rows.filter(r => r.med != null).map(r => '. ' + r.label + ' 중앙값 ' + secText(r.med)).join('') }),
+          legend: [['box', '많은 사람의 범위(25%~75%)'], ['med', '중앙값(절반이 이보다 짧아요)'], ['avg', '평균'], ['mask', C.MASK + '이라 가림']],
+          table: { head: ['항목', '사람 수', '중앙값', '25%', '75%', '평균'], rows: items.map(i => okOf(i) ? [nm(i), C.fmtN(i.users.n) + '명', secText(i.median_sec), secText(i.p25_sec), secText(i.p75_sec), secText(i.avg_sec)] : [nm(i), null, null, null, null, null]) }
+        }));
         items.forEach(i => {
-          const ok = C.pick(i.users, 'n') != null && i.median_sec != null;
-          out.append(el('p', { class: 'label us-sub' }, i.label + (appName(i.app) ? ' (' + appName(i.app) + ')' : '')));
-          if (!ok) { out.append(note(C.MASK + '이라 가렸어요.')); return; }
-          out.append(C.tiles([
-            { label: '가운데 값(중앙값)', value: secText(i.median_sec), note: '절반의 사람이 이보다 짧게 머물렀어요' },
-            { label: '많은 사람의 범위', value: secText(i.p25_sec) + ' ~ ' + secText(i.p75_sec), note: '25%와 75% 지점' },
-            { label: '평균', value: secText(i.avg_sec) },
-            { label: '사람 수', value: C.fmtN(i.users.n) + '명' }
-          ]));
+          if (!okOf(i)) return;
+          out.append(el('p', { class: 'label us-sub' }, nm(i) + ' · 머문 시간 구간별 횟수'));
           const bs = i.buckets || [], cols = bs.map(b => ({ label: b.label, v: C.pick(b.events, 'n') }));
           out.append(C.figure({
-            svg: C.barsV(cols, { label: i.label + ' 머문 시간 구간별 횟수 막대 그래프' }),
-            legend: [['bar', '구간별 횟수'], ['mask', C.MASK + '이라 가림']],
+            svg: C.barsV(cols, { h: 130, label: i.label + ' 머문 시간 구간별 횟수 히스토그램' }),
+            legend: [['f1', '구간별 횟수'], ['mask', C.MASK + '이라 가림']],
             table: { head: ['머문 시간', '횟수'], rows: bs.map(b => [b.label, C.pick(b.events, 'n') == null ? null : C.fmtN(b.events.n)]) }
           }));
         });
@@ -353,19 +360,28 @@
   function device(tk) {
     const r = range(), a = { app: S.app, from: r.from, to: r.to }, load = () => get('devices', a);
     const KIND = { phone: '휴대폰', tablet: '태블릿', pc: '컴퓨터', '': '알 수 없음' };
+    // 구성 비율(조각 3~4개)은 도넛, 서로 겹칠 수 있는 묶음은 가로 막대
     const barsOf = (list, name, label) => {
       if (!list.length) return nothing('이 기간에는 기록이 없어요.');
       const rr = list.map(x => { const v = C.pick(x.users, 'n'); return { label: name(x.k), v, text: v == null ? null : C.fmtN(v) + '명' }; });
       const seen = rr.filter(x => x.v != null).length, out = el('div', null);
       if (!seen) out.append(note('모두 ' + MASK_NOTE));
-      out.append(C.figure({ svg: C.barsH(rr, { label: label + ' 가로 막대 그래프. 항목 ' + rr.length + '개, 가려진 항목 ' + (rr.length - seen) + '개' }), legend: [['bar', '사람 수'], ['mask', C.MASK + '이라 가림']], table: { head: [label, '사람 수'], rows: list.map(x => [name(x.k), C.pick(x.users, 'n') == null ? null : C.fmtN(C.pick(x.users, 'n'))]) } }));
+      out.append(C.figure({ svg: C.barsH(rr, { label: label + ' 가로 막대 그래프. 항목 ' + rr.length + '개, 가려진 항목 ' + (rr.length - seen) + '개' }), legend: [['f1', '사람 수'], ['mask', C.MASK + '이라 가림']], table: { head: [label, '사람 수'], rows: list.map(x => [name(x.k), C.pick(x.users, 'n') == null ? null : C.fmtN(C.pick(x.users, 'n'))]) } }));
+      return out;
+    };
+    const donutOf = (list, name, label, cls) => {
+      if (!list.length) return nothing('이 기간에는 기록이 없어요.');
+      const parts = list.map((x, i) => ({ label: name(x.k), v: C.pick(x.users, 'n'), cls: cls ? cls(x, i) : String(i + 1) }));
+      const seen = parts.filter(x => x.v != null).length, out = el('div', null);
+      if (!seen) out.append(note('모두 ' + MASK_NOTE));
+      out.append(C.figure({ svg: C.donut(parts, { label: label + ' 도넛 그래프. 항목 ' + parts.length + '개, 가려진 항목 ' + (parts.length - seen) + '개' + parts.filter(x => x.v != null).map(x => '. ' + x.label + ' ' + C.fmtN(x.v) + '명').join('') }), table: { head: [label, '사람 수'], rows: list.map(x => [name(x.k), C.pick(x.users, 'n') == null ? null : C.fmtN(C.pick(x.users, 'n'))]) } }));
       return out;
     };
     const months = [];
     { const t = new Date(Date.now() + 9 * 36e5); for (let i = 0; i < 13; i++) { const d = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() - i, 1)); const v = d.toISOString().slice(0, 10); months.push([i === 0 ? '' : v, d.getUTCFullYear() + '년 ' + (d.getUTCMonth() + 1) + '월']); } }
     return [
-      card('기기', '화면 폭으로 나눈 기기 종류예요.', null, load, d => barsOf(d.device || [], k => KIND[k] != null ? KIND[k] : String(k), '기기'), tk),
-      card('홈 화면 앱', '홈 화면에 추가한 앱으로 연 사람과 브라우저로 연 사람이에요.', null, load, d => barsOf(d.standalone || [], k => k === true || k === 'true' ? '홈 화면 앱' : '브라우저', '여는 방법'), tk),
+      card('기기', '화면 폭으로 나눈 기기 종류예요.', null, load, d => donutOf(d.device || [], k => KIND[k] != null ? KIND[k] : String(k), '기기', x => ({ phone: '1', pc: '2', tablet: '3' })[x.k] || 'o'), tk),
+      card('홈 화면 앱', '홈 화면에 추가한 앱으로 연 사람과 브라우저로 연 사람이에요.', null, load, d => donutOf(d.standalone || [], k => k === true || k === 'true' ? '홈 화면 앱' : '브라우저', '여는 방법', x => (x.k === true || x.k === 'true') ? '1' : '2'), tk),
       card('앱 판', '쓰고 있는 화면 버전이에요.', null, load, d => {
         const list = d.ver || [];
         if (!list.length) return nothing('이 기간에는 기록이 없어요.');
@@ -376,8 +392,8 @@
         () => get('crossApp', { month: S.cross }), d => {
           const b = d.buckets || [], by = d.by_app || [];
           const out = el('div', null);
-          out.append(barsOf(b.map(x => ({ k: x.apps, users: x.users })), k => '앱 ' + k + '개 쓴 사람', '쓴 앱 수'));
-          out.append(el('p', { class: 'label' }, '앱별 사용한 사람'));
+          out.append(donutOf(b.map(x => ({ k: x.apps, users: x.users })), k => '앱 ' + k + '개 쓴 사람', '쓴 앱 수', x => ({ 1: 'q2', 2: 'q4', 3: 'q5' })[x.k] || 'q3'));
+          out.append(el('p', { class: 'label' }, '앱별 사용한 사람(여러 앱을 쓴 사람은 각 앱에 한 번씩 들어가요)'));
           out.append(barsOf(by.map(x => ({ k: x.app, users: x.users })), k => appName(k), '앱'));
           return out;
         }, tk)
