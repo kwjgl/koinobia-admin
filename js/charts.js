@@ -63,6 +63,7 @@
       const s = svg('svg', { class: 'gr-sw', viewBox: '0 0 18 12', 'aria-hidden': 'true' });
       if (k === 'mask') s.append(svg('rect', { class: 'gr-hmask', x: 1, y: 1, width: 16, height: 10 }));
       else if (k === 'bar') s.append(svg('rect', { class: 'gr-bar', x: 1, y: 1, width: 16, height: 10 }));
+      else if (k === 'mid') s.append(svg('rect', { class: 'gr-bar mid', x: 1, y: 1, width: 16, height: 10 }));
       else if (k === 'empty') s.append(svg('rect', { class: 'gr-cell', x: 1, y: 1, width: 16, height: 10 }));
       else s.append(svg('line', { class: 'gr-line', x1: 1, y1: 6, x2: 17, y2: 6, 'stroke-dasharray': k === 'dash' ? DASH[1] : k === 'dot' ? DASH[2] : null }));
       return el('span', { class: 'gr-keyi' }, s, t);
@@ -107,12 +108,13 @@
     return g;
   }
 
-  // ---- 세로 막대: cols [{label, v|null}] 0에서 시작. null이면 점선 빈 칸 ----
+  // ---- 세로 막대: cols [{label, v|null}] 또는 두 묶음 [{label, vs:[a|null, b|null]}]. 0에서 시작. null이면 점선 빈 칸 ----
   function barsV(cols, o) {
     o = o || {};
     const H = 170, L = 36, T = 16, B = 24, pw = W - L - 8, ph = H - T - B, n = cols.length, fmt = o.fmt || fmtN;
-    const top = niceMax(Math.max(0, ...cols.map(c => c.v).filter(v => v != null)));
-    const slot = n ? pw / n : pw, bw = slot * .6;
+    const vsOf = c => c.vs || [c.v], k = Math.max(1, ...cols.map(c => vsOf(c).length));
+    const top = niceMax(Math.max(0, ...cols.flatMap(c => vsOf(c)).filter(v => v != null)));
+    const slot = n ? pw / n : pw, gw = slot * .7, bw = gw / k, showVal = n * k <= 16;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '막대 그래프' });
     [0, .5, 1].forEach(f => {
       const y = T + ph - f * ph;
@@ -121,13 +123,17 @@
     const step = Math.max(1, Math.ceil(n / 8));
     cols.forEach((c, i) => {
       const cx = L + slot * i + slot / 2;
-      if (c.v == null) {
-        g.append(svg('rect', { class: 'gr-hmask', x: cx - bw / 2, y: T + ph - 34, width: bw, height: 34 }), txt(cx, T + ph - 18, '가림', 'gr-txt', 'middle'));
-      } else {
-        const h = c.v / top * ph;
-        g.append(svg('rect', { class: 'gr-bar' + (c.partial ? ' part' : ''), x: cx - bw / 2, y: T + ph - h, width: bw, height: Math.max(h, c.v > 0 ? 1 : 0) }),
-          txt(cx, T + ph - h - 4, c.text || fmt(c.v), 'gr-val', 'middle'));
-      }
+      vsOf(c).forEach((v, j) => {
+        const x = cx - gw / 2 + j * bw, mx = x + bw / 2;
+        if (v == null) {
+          g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: T + ph - 34, width: Math.max(2, bw - 2), height: 34 }));
+          if (k === 1) g.append(txt(mx, T + ph - 18, '가림', 'gr-txt', 'middle'));
+        } else {
+          const h = v / top * ph;
+          g.append(svg('rect', { class: 'gr-bar' + (j === 1 ? ' mid' : '') + (c.partial ? ' part' : ''), x: x + (k > 1 ? 1 : 0), y: T + ph - h, width: Math.max(2, bw - (k > 1 ? 2 : 0)), height: Math.max(h, v > 0 ? 1 : 0) }));
+          if (showVal) g.append(txt(mx, T + ph - h - 4, k === 1 && c.text ? c.text : fmt(v), 'gr-val', 'middle'));
+        }
+      });
       if (i % step === 0) g.append(txt(cx, H - 8, c.label, 'gr-txt', 'middle'));
     });
     return g;

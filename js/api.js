@@ -160,7 +160,12 @@
       heatmap: a => rpc('admin_usage_heatmap', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
       devices: a => rpc('admin_usage_devices', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
       crossApp: a => rpc('admin_usage_cross_app', { p_month: a.month || null }),
-      dormant: a => rpc('admin_usage_dormant', { p_app: a.app || null })
+      dormant: a => rpc('admin_usage_dormant', { p_app: a.app || null }),
+      // 행동 지표(037). 서버 SQL 037이 없으면 code:'sql'로 실패한다
+      stickiness: a => rpc('admin_usage_stickiness', { p_app: a.app || null, p_months: a.months || 6 }),
+      frequency: a => rpc('admin_usage_frequency', { p_app: a.app || null, p_days: a.days || 30 }),
+      duration: a => rpc('admin_usage_duration', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
+      newReturning: a => rpc('admin_usage_new_returning', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'week' })
     }
   };
   window.api = api;
