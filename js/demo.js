@@ -87,7 +87,7 @@
   const hh = s => { let x = 2166136261; for (const c of String(s)) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return ((x >>> 0) % 1000) / 1000; };
   const vis = k => mode === 'empty' ? false : mode === 'small' ? hh(k) < 0.12 : true;
   const sm = mode === 'small';
-  const N = (n, k) => mode === 'empty' ? { n: 0, small: false } : !sm ? { n: Math.round(n), small: false } : vis(k) && n >= 5 ? { n: Math.round(n), small: false } : { n: null, small: true };
+  const N = (n, k) => mode === 'empty' ? { n: null, small: false } : !sm ? { n: Math.round(n), small: false } : vis(k) && n >= 5 ? { n: Math.round(n), small: false } : { n: null, small: true };
   const Rr = (r, k, base) => mode === 'empty' ? { r: null, small: false } : !sm ? { r: Math.round(r * 1e4) / 1e4, small: false } : vis(k) && (base === undefined || base >= 5) ? { r: Math.round(r * 1e4) / 1e4, small: false } : { r: null, small: true };
   const d2s = d => d.toISOString().slice(0, 10);
   const periods = (from, to, grain) => {
