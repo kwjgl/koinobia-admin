@@ -127,7 +127,11 @@
     onSlow(fn) { slowFn = fn; },
     onSignedOut(fn) { outFn = fn; },
     me: () => rpc('admin_me'),
-    today: () => rpc('admin_today')
+    today: () => rpc('admin_today'),
+    // 교회 신청(035). 연락처·대표 목사님 이름이 들어 있으니 화면 메모리에서만 쓴다
+    applyList: () => rpc('church_apply_admin_list'),
+    applyMake: (id, name, code, dept) => rpc('church_apply_make', { p_id: id, p_name: name, p_code: code, p_dept: dept }),
+    applyReject: (id, reason) => rpc('church_apply_reject', { p_id: id, p_reason: reason || '' })
   };
   window.api = api;
 })();

@@ -99,3 +99,11 @@ select.field { appearance: auto; }
 a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: none; }
 .td-label { color: var(--ink-2); }
 .td-val { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* 교회 신청 화면 */
+.ap-group { margin: 1.4em 0 .4em; font-weight: 600; }
+.ap-info { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: .9em; }
+.ap-info dt { color: var(--ink-2); }
+.ap-info dd { margin: 0; overflow-wrap: anywhere; }
+.aa-a { color: var(--accent); font-weight: 600; text-decoration: underline; }
+.aa-card .aa-form .msg { margin: 0; flex-basis: 100%; }

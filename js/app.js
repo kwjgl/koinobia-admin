@@ -8,7 +8,7 @@
     ['today', '오늘'], ['apply', '교회 신청'], ['church', '교회'], ['usage', '이용 통계'],
     ['feedback', '의견함'], ['community', '공동체'], ['storage', '저장 공간']
   ];
-  const S = { today: null, sess: null, admin: false };
+  const S = { today: null, sess: null, admin: false, seq: 0 };
 
   const loading = () => el('p', { class: 'loading' }, '불러오는 중…');
   function paint(node) { root.replaceChildren(node); }
@@ -63,14 +63,36 @@
     return el('section', null, el('h1', null, name), el('div', { class: 'card' }, el('p', { class: 'msg' }, '준비 중이에요.')));
   }
 
+  // 신청 목록이 바뀌면 메뉴 옆 숫자를 맞춘다(오늘 결과가 있을 때만)
+  function applyChanged(list) {
+    if (!S.today) return;
+    const items = list.items || [];
+    S.today.apply = { pending: items.filter(i => i.status === '대기').length, made: items.filter(i => i.status === '만듦').length };
+    const old = root.querySelector('.aa-menu');
+    if (old) old.replaceWith(menu('apply'));
+  }
+
   async function showShell() {
     const m = location.hash.match(/^#\/([a-z]+)/);
     const cur = m && MENU.some(x => x[0] === m[1]) ? m[1] : 'today';
+    const my = ++S.seq;           // 늦게 온 옛 요청은 버린다
     let body;
+    paint(el('div', null, menu(cur), loading()));
     if (cur === 'today') {
-      paint(el('div', null, menu(cur), loading()));
-      try { S.today = await api.today(); } catch (e) { return fail(e); }
+      try { S.today = await api.today(); } catch (e) { return my === S.seq && fail(e); }
+      if (my !== S.seq) return;
       body = Views.today.render(S.today);
+    } else if (cur === 'apply') {
+      let list;
+      try {
+        const need = S.today ? null : api.today().then(t => { S.today = t; }, () => {});
+        list = await api.applyList();
+        if (need) await need;
+      } catch (e) { return my === S.seq && fail(e); }
+      if (my !== S.seq) return;
+      body = Views.apply.render(list, { changed: applyChanged });
+      paint(el('div', null, menu(cur), body, footer()));
+      return;
     } else body = soon(MENU.find(x => x[0] === cur)[1]);
     paint(el('div', null, menu(cur), body, footer()));
   }
