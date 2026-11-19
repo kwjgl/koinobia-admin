@@ -116,8 +116,12 @@
     if (name === 'admin_usage_signups') {
       const g = a.p_grain || 'month'; let cum = 0;
       const series = periods(a.p_from, a.p_to, g).map(p => {
-        const n = (6 + 10 * hh('s' + p)) * GR[g]; cum += Math.round(n); const k = 's' + p, pr = (x, w) => N(n * w, k + w);
-        return { period: p, new: N(n, k), cumulative: N(cum + 90, k), providers: { kakao: pr(n, .6), google: pr(n, .25), apple: pr(n, .1), other: pr(n, .03) } };
+        const n = (6 + 10 * hh('s' + p)) * GR[g]; cum += Math.round(n); const k = 's' + p;
+        // 006 규칙: 로그인 방법 칸 중 1~4명(가림)이 하나라도 있으면 그 기간 합계도 가린다. 0명은 가리지 않는다
+        const pr = (x, w) => (mode !== 'empty' && Math.round(n * w) === 0 ? { n: 0, small: false } : N(n * w, k + w));
+        const providers = { kakao: pr(n, .55), google: pr(n, .28), apple: pr(n, .17), other: pr(n, 0) };
+        const anyMask = Object.keys(providers).some(x => providers[x].small);
+        return { period: p, new: anyMask ? { n: null, small: true } : N(n, k), cumulative: N(cum + 90, k), providers };
       });
       return { grain: g, from: a.p_from, to: a.p_to, cumulative_total: N(cum + 90, 'cum'), series };
     }
