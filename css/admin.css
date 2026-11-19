@@ -170,7 +170,7 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .gr-dot { fill: var(--accent); }
 .gr-band { fill: var(--surface-2); }
 .gr-bar { fill: var(--accent); }
-.gr-bar.part { fill: var(--accent-mid); }
+.gr-bar.part, .gr-bar.mid { fill: var(--accent-mid); }
 .gr-hmask { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 2; }
 .gr-cell { fill: var(--surface-2); }
 .gr-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: .5em; font-size: .78em; color: var(--ink-2); }
@@ -189,3 +189,4 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .us-coh td.l4 { background: var(--accent); color: var(--on-accent); }
 .us-coh td.mask { color: var(--ink-2); font-size: .85em; }
 .us-tblw .st-tbl td:first-child { white-space: nowrap; }
+.us-sub { margin-top: 1.2em; font-size: .9em; color: var(--ink); }

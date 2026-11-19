@@ -12,7 +12,7 @@
     { name: '교회 기도', steps: ['church.open', 'church.item-save', 'church.pray-start', 'church.pray-done'], note: '교회 화면에서 기도제목을 저장하고 기도하기를 마친 흐름이에요.' },
     { name: '공동체', steps: ['community.list', 'community.create', 'community.invite-create', 'community.first-topic'], note: '공동체를 만들고 초대한 뒤 첫 기도제목을 올린 흐름이에요.' }
   ];
-  const S = { app: '', days: 30, tab: 'glance', grain: 'day', kind: '', months: 6, flow: 0, fdays: 7, custom: ['', '', '', '', '', '', '', ''], customGo: null, cross: '', seq: 0 };
+  const S = { app: '', days: 30, tab: 'glance', grain: 'day', nrGrain: 'week', kind: '', months: 6, flow: 0, fdays: 7, custom: ['', '', '', '', '', '', '', ''], customGo: null, cross: '', seq: 0 };
   const cache = new Map();
   let panelEl = null;
 
@@ -26,6 +26,11 @@
     p.catch(() => cache.delete(key));
     return p;
   }
+  // 037(행동 지표) 함수가 서버에 아직 없으면 그 카드에만 안내를 보인다
+  const get37 = (name, args) => get(name, args).catch(e => {
+    throw e && e.code === 'sql' ? { code: 'sql', message: '서버 SQL 037이 아직 없어요. 037을 Supabase에 넣은 뒤 다시 불러와 주세요.' } : e;
+  });
+  const secText = v => v == null ? null : v < 60 ? v + '초' : Math.floor(v / 60) + '분' + (v % 60 ? ' ' + (v % 60) + '초' : '');
   const appName = a => APP_NAME[a] || a || '';
   const dash = x => x == null ? C.MASK : x;
   const MASK_NOTE = '5명 미만이라 가렸어요. 개인이 드러나지 않게 하는 약속이에요. 기간을 넓혀 보세요.';
@@ -85,6 +90,46 @@
             { label: '가장 최근 기간 활동한 사람', value: C.pick(last.active, 'n') == null ? null : C.fmtN(C.pick(last.active, 'n')) + '명', note: C.plabel(last.period, g) },
             { label: '1인당 평균 사건 수', value: per == null ? null : per + '번', note: per == null ? '' : '사건 수 ÷ 사람 수 (' + C.plabel(when, g) + ')' }
           ]));
+          return out;
+        }, tk),
+      card('고착도', '하루 평균 활동한 사람 ÷ 한 달 활동한 사람이에요. 높을수록 한 달 동안 자주 돌아오는 사람이 많아요. 이번 달은 어제까지만 세서 "진행 중"으로 표시해요.', null,
+        () => get37('stickiness', { app: S.app, months: S.days >= 365 ? 13 : 6 }),
+        d => {
+          const ms = d.months || [];
+          if (!ms.length) return nothing('이 기간에는 기록이 없어요.');
+          const vals = ms.map(m => C.pick(m.ratio, 'r')), seen = vals.filter(v => v != null);
+          const lab = m => { const x = /^(\d{4})-(\d{2})/.exec(m.month || ''); return x ? Number(x[2]) + '월' + (m.partial ? '*' : '') : String(m.month); };
+          const num = (o, k) => C.pick(o, k) == null ? null : o[k];
+          const out = el('div', null);
+          if (!seen.length) out.append(note('모두 ' + MASK_NOTE));
+          out.append(C.figure({
+            svg: C.barsV(ms.map((m, i) => ({ label: lab(m), v: vals[i] == null ? null : Math.round(vals[i] * 1000) / 10, partial: !!m.partial })), { fmt: v => v + '%', label: '고착도 막대 그래프. 달 ' + ms.length + '개, 가려진 달 ' + (ms.length - seen.length) + '개' + (ms.some(m => m.partial) ? ', 이번 달은 진행 중' : '') }),
+            legend: [['bar', '고착도(달 단위, 이번 달은 진행 중)'], ['mask', C.MASK + '이라 가림']],
+            table: { head: ['달', '한 달 활동자', '하루 평균 활동자', '고착도', ''], rows: ms.map(m => [m.month, num(m.mau, 'n') == null ? null : C.fmtN(m.mau.n), num(m.dau_avg, 'v') == null ? null : String(m.dau_avg.v), C.pick(m.ratio, 'r') == null ? null : C.pct(m.ratio.r), m.partial ? '진행 중' : '']) }
+          }));
+          const done = ms.slice().reverse().find(m => !m.partial) || ms[ms.length - 1];
+          out.append(C.tiles([
+            { label: '지난 달 고착도', value: C.pick(done.ratio, 'r') == null ? null : C.pct(done.ratio.r), note: lab(done).replace('*', '') },
+            { label: '하루 평균 활동자', value: C.pick(done.dau_avg, 'v') == null ? null : done.dau_avg.v + '명' },
+            { label: '한 달 활동자', value: C.pick(done.mau, 'n') == null ? null : C.fmtN(done.mau.n) + '명' }
+          ]));
+          return out;
+        }, tk),
+      card('새로 온 사람과 다시 온 사람', '새로 온 사람은 기록에서 처음 나타난 사람, 다시 온 사람은 그 기간에 활동했고 처음 온 때가 그 전인 사람이에요. 기록을 접어 둔 옛 기간은 빠져요.',
+        tools(select('단위', [['day', '하루'], ['week', '한 주'], ['month', '한 달']], S.nrGrain, v => { S.nrGrain = v; panel(); })),
+        () => get37('newReturning', { app: S.app, from: r.from, to: r.to, grain: S.nrGrain }),
+        d => {
+          const s = d.series || [], g = d.grain || S.nrGrain;
+          if (!s.length) return nothing('이 기간에는 기록이 없어요.');
+          const cols = s.map(x => ({ label: C.plabel(x.period, g), vs: [C.pick(x.new, 'n'), C.pick(x.returning, 'n')] }));
+          const seen = cols.filter(c => c.vs.some(v => v != null)).length, out = el('div', null);
+          if (!seen) out.append(note('이 기간은 모두 ' + MASK_NOTE));
+          const cell = o => C.pick(o, 'n') == null ? null : C.fmtN(C.pick(o, 'n'));
+          out.append(C.figure({
+            svg: C.barsV(cols, { label: '새로 온 사람과 다시 온 사람 막대 그래프. 기간 ' + s.length + '개, 둘 다 가려진 기간 ' + (s.length - seen) + '개' }),
+            legend: [['bar', '새로 온 사람'], ['mid', '다시 온 사람'], ['mask', C.MASK + '이라 가림']],
+            table: { head: ['기간', '새로 온 사람', '다시 온 사람'], rows: s.map(x => [x.period, cell(x.new), cell(x.returning)]) }
+          }));
           return out;
         }, tk),
       card('새로 온 계정', '새로 가입한 계정 수와 로그인 방법이에요(앱별로는 나누지 않아요).', null,
@@ -228,6 +273,22 @@
           out.append(C.legend([['mask', '"가림"은 ' + C.MASK + '이거나 아직 그 주가 지나지 않은 칸']]));
           return out;
         }, tk),
+      card('한 달에 며칠 오나', '이 기간에 며칠 왔는지로 사람을 묶었어요(최대 90일까지 봐요).', null,
+        () => get37('frequency', { app: S.app, days: Math.min(90, Math.max(7, S.days)) }),
+        d => {
+          const bs = d.buckets || [];
+          if (!bs.length) return nothing('이 기간에는 기록이 없어요.');
+          const name = b => b.to == null ? b.from + '일 이상' : b.from === b.to ? b.from + '일' : b.from + '~' + b.to + '일';
+          const cols = bs.map(b => ({ label: name(b).replace('일', ''), v: C.pick(b.users, 'n') })), seen = cols.filter(c => c.v != null).length;
+          const out = el('div', null, note('이 기간 활동한 사람: ' + (C.pick(d.active, 'n') == null ? C.MASK : C.fmtN(d.active.n) + '명') + ' · 최근 ' + d.days + '일'));
+          if (!seen) out.append(note('모두 ' + MASK_NOTE));
+          out.append(C.figure({
+            svg: C.barsV(cols, { label: '사용 빈도 막대 그래프. 구간 ' + bs.length + '개, 가려진 구간 ' + (bs.length - seen) + '개' }),
+            legend: [['bar', '그 구간의 사람 수(가로축은 온 날 수)'], ['mask', C.MASK + '이라 가림']],
+            table: { head: ['온 날 수', '사람 수'], rows: bs.map(b => [name(b), C.pick(b.users, 'n') == null ? null : C.fmtN(b.users.n)]) }
+          }));
+          return out;
+        }, tk),
       card('쉬는 사람', '30일 넘게 오지 않은 사람의 비율이에요.', null,
         () => get('dormant', { app: S.app }),
         d => {
@@ -244,6 +305,7 @@
   // ---- 시간 ----
   function time(tk) {
     const r = range();
+    // 시간대 지도는 서버 037이 들어간 뒤부터 일이 일어난 때(client_at)로 요일·시간을 센다(화면은 그대로)
     return [card('요일·시간대 지도', '한국 시간 기준이에요. 진할수록 그 시간에 쓰인 사건이 많아요.', null,
       () => get('heatmap', { app: S.app, from: r.from, to: r.to }),
       d => {
@@ -257,6 +319,32 @@
           legend: [['bar', '사건이 있는 칸(진할수록 많아요)'], ['mask', C.MASK + '이라 가림'], ['empty', '기록 없음']],
           table: { head: ['요일', '시간', '사건 수'], rows: cs.map(c => [days[c.dow] || '', c.hour + '시', C.pick(c.events, 'n') == null ? null : C.fmtN(C.pick(c.events, 'n'))]) }
         }));
+        return out;
+      }, tk),
+    card('머문 시간', '기도하기·모임 모드를 마칠 때 앱이 보낸 머문 시간이에요. 시간을 보낸 기록만 세요.', null,
+      () => get37('duration', { app: S.app, from: r.from, to: r.to }),
+      d => {
+        const items = d.items || [];
+        if (!items.length) return nothing('보여 줄 항목이 없어요.');
+        const out = el('div', null);
+        if (items.every(i => C.pick(i.users, 'n') == null)) out.append(note('앱이 머문 시간을 보내기 시작하면 보여요. 이미 보내고 있다면 ' + MASK_NOTE));
+        items.forEach(i => {
+          const ok = C.pick(i.users, 'n') != null && i.median_sec != null;
+          out.append(el('p', { class: 'label us-sub' }, i.label + (appName(i.app) ? ' (' + appName(i.app) + ')' : '')));
+          if (!ok) { out.append(note(C.MASK + '이라 가렸어요.')); return; }
+          out.append(C.tiles([
+            { label: '가운데 값(중앙값)', value: secText(i.median_sec), note: '절반의 사람이 이보다 짧게 머물렀어요' },
+            { label: '많은 사람의 범위', value: secText(i.p25_sec) + ' ~ ' + secText(i.p75_sec), note: '25%와 75% 지점' },
+            { label: '평균', value: secText(i.avg_sec) },
+            { label: '사람 수', value: C.fmtN(i.users.n) + '명' }
+          ]));
+          const bs = i.buckets || [], cols = bs.map(b => ({ label: b.label, v: C.pick(b.events, 'n') }));
+          out.append(C.figure({
+            svg: C.barsV(cols, { label: i.label + ' 머문 시간 구간별 횟수 막대 그래프' }),
+            legend: [['bar', '구간별 횟수'], ['mask', C.MASK + '이라 가림']],
+            table: { head: ['머문 시간', '횟수'], rows: bs.map(b => [b.label, C.pick(b.events, 'n') == null ? null : C.fmtN(b.events.n)]) }
+          }));
+        });
         return out;
       }, tk)];
   }

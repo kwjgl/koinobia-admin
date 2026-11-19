@@ -82,6 +82,7 @@
     switches: Object.assign({}, settings)
   });
   // 이용 통계(모두 지어낸 값). 서버처럼 5명 미만은 {n:null, small:true}로 가린다.
+  // ?demo&no037  행동 지표(037) 함수가 서버에 아직 없는 모양
   // ?demo 값 있음  ?demo=small 거의 다 가림  ?demo=empty 기록 없음  ?demo=error 이용 통계 호출이 계속 실패(첫 호출 뒤)
   const hh = s => { let x = 2166136261; for (const c of String(s)) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return ((x >>> 0) % 1000) / 1000; };
   const vis = k => mode === 'empty' ? false : mode === 'small' ? hh(k) < 0.12 : true;
@@ -144,6 +145,33 @@
         out.push({ step: i + 1, ev, label: it[2], users: u, from_prev: i ? Rr(n / (base * Math.pow(.68, i - 1)), k, n) : null, from_first: i ? Rr(Math.pow(.68, i), k, n) : null });
       });
       return { app: a.p_app, days: a.p_days, steps: out };
+    }
+    if (/^admin_usage_(stickiness|frequency|duration|new_returning)$/.test(name)) {
+      if (q.has('no037')) throw err('PGRST202', 'not found', 404);
+    }
+    if (name === 'admin_usage_stickiness') {
+      const m = Math.min(13, Math.max(1, a.p_months || 6)), out = [];
+      for (let i = m - 1; i >= 0; i--) {
+        const d = new Date(Date.UTC(2026, 10 - i, 1)), k = 'sk' + i, mau = 80 + 40 * hh(k), r = (i === 0 ? .16 : .2) + .1 * hh(k + 'r'), show = vis(k);
+        out.push({ month: d2s(d), partial: i === 0, mau: N(mau, k), dau_avg: show ? { v: Math.round(mau * r * 100) / 100, small: false } : { v: null, small: true }, ratio: Rr(r, k, mau) });
+      }
+      return { app: a.p_app, months: out };
+    }
+    if (name === 'admin_usage_frequency') {
+      const B = [[1, 1, 38], [2, 3, 30], [4, 7, 24], [8, 15, 14], [16, null, 4]];
+      return { app: a.p_app, days: a.p_days, active: N(110, 'fq'), buckets: B.map(b => ({ from: b[0], to: b[1], users: N(b[2], 'fq' + b[0]) })) };
+    }
+    if (name === 'admin_usage_duration') {
+      const D = [['koide', 'note.pray-done', '기도하기 마침', 48, 240], ['koide', 'church.pray-done', '교회 기도하기 마침', 22, 420], ['koide', 'church.meet-done', '모임 모드 마침', 4, 900]];
+      return { from: a.p_from, to: a.p_to, items: D.filter(x => !a.p_app || x[0] === a.p_app).map(x => {
+        const k = 'du' + x[1], u = N(x[3], k), ok = !u.small;
+        return { app: x[0], ev: x[1], label: x[2], users: u, events: N(x[3] * 2.4, k), median_sec: ok ? x[4] : null, p25_sec: ok ? Math.round(x[4] * .5) : null, p75_sec: ok ? Math.round(x[4] * 1.8) : null, avg_sec: ok ? Math.round(x[4] * 1.2) : null,
+          buckets: ['1분 미만', '1~3분', '3~5분', '5~10분', '10분 이상'].map((l, j) => ({ label: l, events: N([x[3] * .3, x[3] * .8, x[3] * .7, x[3] * .4, x[3] * .2][j], k + j) })) };
+      }) };
+    }
+    if (name === 'admin_usage_new_returning') {
+      const g = a.p_grain || 'week';
+      return { grain: g, from: a.p_from, to: a.p_to, series: periods(a.p_from, a.p_to, g).map(p => { const f = GR[g], k = 'nr' + p; return { period: p, new: N((4 + 8 * hh(k)) * f, k + 'n'), returning: N((18 + 20 * hh(k + 'r')) * f, k + 'r') }; }) };
     }
     if (name === 'admin_usage_heatmap') {
       const cells = []; if (mode !== 'empty') for (let dow = 0; dow < 7; dow++) for (let h = 0; h < 24; h++) {
