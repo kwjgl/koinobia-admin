@@ -72,6 +72,14 @@
     if (old) old.replaceWith(menu('apply'));
   }
 
+  // 안 읽은 의견·새 신고 개수가 바뀌면 메뉴 옆 숫자를 맞춘다
+  function countChanged(key, n, cur) {
+    if (!S.today) return;
+    S.today[key] = n;
+    const old = root.querySelector('.aa-menu');
+    if (old) old.replaceWith(menu(cur));
+  }
+
   async function showShell() {
     const m = location.hash.match(/^#\/([a-z]+)/);
     const cur = m && MENU.some(x => x[0] === m[1]) ? m[1] : 'today';
@@ -101,6 +109,27 @@
       } catch (e) { return my === S.seq && fail(e); }
       if (my !== S.seq) return;
       body = Views.churches.render(d);
+    } else if (cur === 'feedback') {
+      let d;
+      try { d = await api.feedbackList(50, false); } catch (e) { return my === S.seq && fail(e); }
+      if (my !== S.seq) return;
+      if (S.today) S.today.feedback_unread = d.unread;
+      body = Views.feedback.render(d, { changed: n => countChanged('feedback_unread', n, 'feedback') });
+      paint(el('div', null, menu(cur), body, footer()));
+      return;
+    } else if (cur === 'community') {
+      let d;
+      try {
+        const r = await Promise.all([api.communityHealth(), api.communityReports()]);
+        d = { health: r[0], reports: r[1], ctx: { changed: n => countChanged('reports_new', n, 'community') } };
+      } catch (e) { return my === S.seq && fail(e); }
+      if (my !== S.seq) return;
+      body = Views.community.render(d);
+    } else if (cur === 'storage') {
+      let d;
+      try { d = await api.dbSize(); } catch (e) { return my === S.seq && fail(e); }
+      if (my !== S.seq) return;
+      body = Views.storage.render(d);
     } else body = soon(MENU.find(x => x[0] === cur)[1]);
     paint(el('div', null, menu(cur), body, footer()));
   }
