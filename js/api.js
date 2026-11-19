@@ -149,7 +149,19 @@
     communityReports: () => rpc('admin_community_reports'),
     communityLookup: key => rpc('admin_community_lookup', { p_key: key }),
     communityClose: id => rpc('admin_community_close', { p_id: id }),
-    dbSize: () => rpc('admin_db_size')
+    dbSize: () => rpc('admin_db_size'),
+    // 이용 통계(006). 서버가 5명 미만을 이미 가려서 준다({n,small}). 사람·교회 번호는 오지 않는다. 기간은 'YYYY-MM-DD'(한국 날짜)
+    usage: {
+      active: a => rpc('admin_usage_active', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'day' }),
+      signups: a => rpc('admin_usage_signups', { p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'month' }),
+      retention: a => rpc('admin_usage_retention', { p_app: a.app || null, p_months: a.months || 6 }),
+      features: a => rpc('admin_usage_features', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
+      funnel: a => rpc('admin_usage_funnel', { p_app: a.app, p_steps: a.steps, p_days: a.days || 7 }),
+      heatmap: a => rpc('admin_usage_heatmap', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
+      devices: a => rpc('admin_usage_devices', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
+      crossApp: a => rpc('admin_usage_cross_app', { p_month: a.month || null }),
+      dormant: a => rpc('admin_usage_dormant', { p_app: a.app || null })
+    }
   };
   window.api = api;
 })();
