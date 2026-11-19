@@ -107,3 +107,12 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .ap-info dd { margin: 0; overflow-wrap: anywhere; }
 .aa-a { color: var(--accent); font-weight: 600; text-decoration: underline; }
 .aa-card .aa-form .msg { margin: 0; flex-basis: 100%; }
+
+/* 교회 화면 */
+.aa-stats.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.aa-code.off { opacity: .5; font-weight: 500; }
+.aa-log summary { cursor: pointer; font-weight: 600; min-height: 36px; }
+.aa-loglist { margin: .5em 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: .9em; overflow-wrap: anywhere; }
+.aa-acts .btn[aria-pressed="true"] { background: var(--accent-soft); }
+.aa-form .aa-head { flex-wrap: wrap; }
+.aa-grid + .aa-add, .card + .aa-add { width: 100%; margin-top: 14px; min-height: 64px; }

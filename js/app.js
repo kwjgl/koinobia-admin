@@ -93,6 +93,14 @@
       body = Views.apply.render(list, { changed: applyChanged });
       paint(el('div', null, menu(cur), body, footer()));
       return;
+    } else if (cur === 'church') {
+      let d;
+      try {
+        const r = await Promise.all([api.settingList(), api.churchList(), api.logList().catch(() => null)]);
+        d = { settings: r[0], churches: r[1], log: r[2] };
+      } catch (e) { return my === S.seq && fail(e); }
+      if (my !== S.seq) return;
+      body = Views.churches.render(d);
     } else body = soon(MENU.find(x => x[0] === cur)[1]);
     paint(el('div', null, menu(cur), body, footer()));
   }
