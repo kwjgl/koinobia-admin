@@ -166,7 +166,7 @@
     function build() {
       const d = st.data, items = d.items || [];
       const kids = [el('h1', null, '교회 신청'),
-        el('p', { class: 'aa-sum' }, OPEN[d.open] || '신청 상태를 알 수 없어요', ' (바꾸는 일은 교회 메뉴에서 해요)')];
+        el('p', { class: 'aa-sum' }, OPEN[d.open] || '신청 상태를 알 수 없어요', ' (바꾸는 곳은 ', el('a', { class: 'aa-a', href: '#/church' }, '교회 메뉴'), '예요)')];
       if (!items.length) { kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, '신청이 없어요.'))); return kids; }
       GROUPS.forEach(([status, label]) => {
         const list = items.filter(i => i.status === status);

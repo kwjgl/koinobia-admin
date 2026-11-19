@@ -131,7 +131,17 @@
     // 교회 신청(035). 연락처·대표 목사님 이름이 들어 있으니 화면 메모리에서만 쓴다
     applyList: () => rpc('church_apply_admin_list'),
     applyMake: (id, name, code, dept) => rpc('church_apply_make', { p_id: id, p_name: name, p_code: code, p_dept: dept }),
-    applyReject: (id, reason) => rpc('church_apply_reject', { p_id: id, p_reason: reason || '' })
+    applyReject: (id, reason) => rpc('church_apply_reject', { p_id: id, p_reason: reason || '' }),
+    // 교회 목록·스위치(036). 사람 이름·계정 번호는 오지 않는다
+    churchList: () => rpc('admin_church_list'),
+    churchCreate: (name, kind, code, dept) => rpc('admin_church_create', { p_name: name, p_kind: kind, p_code: code, p_dept: dept }),
+    churchRename: (id, name) => rpc('admin_church_rename', { p_id: id, p_name: name }),
+    churchState: (id, status) => rpc('admin_church_state', { p_id: id, p_status: status }),
+    churchCode: (id, code, op) => rpc('admin_church_code', { p_id: id, p_code: code, p_op: op }),
+    churchInvite: id => rpc('admin_church_invite', { p_id: id }),
+    settingList: () => rpc('admin_setting_list'),
+    settingSet: (key, value) => rpc('admin_setting_set', { p_key: key, p_value: value }),
+    logList: () => rpc('admin_log_list', { p_limit: 50 })
   };
   window.api = api;
 })();
