@@ -62,7 +62,9 @@
     } }, '표로 보기') : null;
     box.append(g);
     if (tbl) box.append(tbl);
-    if (o.legend) box.append(legend(o.legend));
+    // 가림 범례는 그래프에 가려진 칸이 실제로 있을 때만 보인다(038 이후 서버는 가리지 않는다)
+    const lg = o.legend && o.legend.filter(([k]) => k !== 'mask' || (o.svg.querySelector && o.svg.querySelector('.gr-hmask')));
+    if (lg && lg.length) box.append(legend(lg));
     if (btn) box.append(el('div', { class: 'gr-tools' }, btn));
     return box;
   }

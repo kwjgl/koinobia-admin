@@ -6,5 +6,5 @@ window.ADMIN_CONFIG = {
   // 앱별 시작 주소
   APPS: { koide: 'https://koide.koinobia.com/app/', didako: 'https://didako.koinobia.com/note/' },
   // 이 화면의 버전. 푸터에 보인다
-  VERSION: '2026-11-20 초록 테마·그래프 종류 정리'
+  VERSION: '2026-11-20 이용 통계 가림 없앰'
 };

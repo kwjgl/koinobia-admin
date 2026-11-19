@@ -1,4 +1,4 @@
-/* 이용 통계: 앱 전체 합계만 그린다(교회·사람 단위 없음). 서버가 5명 미만을 이미 가려 준 값만 그리고, 가린 값은 0이 아니라 빈 칸으로 둔다.
+/* 이용 통계: 앱 전체 합계만 그린다(교회·사람 단위 없음). 서버 값을 그대로 그린다(038부터 가리지 않는다). 옛 서버가 small을 주면 0이 아니라 빈 칸 + '5명 미만'으로 둔다.
    탭을 열 때만 그 탭의 함수를 부른다. 같은 (함수·인자)는 60초 메모리에 기억하고, 늦게 온 옛 요청은 버린다(S.seq). */
 (function () {
   const { el } = UI;
@@ -33,7 +33,7 @@
   const secText = v => v == null ? null : v < 60 ? v + '초' : Math.floor(v / 60) + '분' + (v % 60 ? ' ' + (v % 60) + '초' : '');
   const appName = a => APP_NAME[a] || a || '';
   const dash = x => x == null ? C.MASK : x;
-  const MASK_NOTE = '5명 미만이라 가렸어요. 개인이 드러나지 않게 하는 약속이에요. 기간을 넓혀 보세요.';
+  const MASK_NOTE = '5명 미만이라 가려졌어요.';
 
   // 카드: 제목, 설명, (선택) 도구 줄, 불러오는 함수, 그리는 함수. 실패해도 이 카드에만 오류 문구가 보인다
   function card(title, hint, tools, load, draw, token) {
@@ -274,8 +274,10 @@
           });
           const out = el('div', null);
           if (rows.every(r => r.rates.every(x => x == null))) out.append(note('모두 ' + MASK_NOTE));
-          out.append(C.cohortTable(['처음 온 달', '처음 온 사람', '1주 뒤', '4주 뒤', '12주 뒤'], rows));
-          out.append(C.legend([['ramp', '진할수록 다시 온 비율이 높아요'], ['mask', '"가림"은 ' + C.MASK + '이거나 아직 그 주가 지나지 않은 칸']]));
+          const tbl = C.cohortTable(['처음 온 달', '처음 온 사람', '1주 뒤', '4주 뒤', '12주 뒤'], rows);
+          out.append(tbl);
+          // 가림 칸이 실제로 있을 때만 범례에 "가림"을 보인다
+          out.append(C.legend([['ramp', '진할수록 다시 온 비율이 높아요']].concat(tbl.querySelector('.mask') ? [['mask', '"가림"은 값이 없는 칸(아직 그 주가 지나지 않았거나 ' + C.MASK + ')']] : [])));
           return out;
         }, tk),
       card('한 달에 며칠 오나', '이 기간에 며칠 왔는지로 사람을 묶었어요(최대 90일까지 봐요).', null,
@@ -441,7 +443,7 @@
       select('기간', [[7, '최근 7일'], [30, '최근 30일'], [90, '최근 90일'], [365, '최근 365일']], S.days, v => { S.days = Number(v); panel(); }),
       el('button', { class: 'btn small ghost', type: 'button', onclick: () => { cache.clear(); panel(); } }, '다시 불러오기'));
     const sec = el('section', null, el('h1', null, '이용 통계'),
-      el('p', { class: 'hint' }, '앱 전체 합계만 보여요. 사람이나 교회별로 나누지 않아요. ' + MASK_NOTE),
+      el('p', { class: 'hint' }, '앱 전체 합계만 보여요. 사람이나 교회별로 나누지 않아요.'),
       banner(), ctl, tabs, panelEl);
     panel();
     return sec;
