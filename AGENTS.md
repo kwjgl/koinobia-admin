@@ -1,17 +1,16 @@
 # koinobia-admin 작업 규칙 (Claude·ChatGPT 공통)
 
 ## 프로젝트
-- 코이노비아 앱(코이데·디다코·텔리오) 관리자용 정적 페이지. 공개 저장소, 주소 `admin.koinobia.com`.
-- 서버는 pray-for 저장소의 기본 서버(`apps-script/hub/`)를 쓴다. 서버가 바뀌어야 하면 그쪽에서 따로 PR을 만든다.
-- 계획은 `docs/plan.md`, 약속은 `docs/design.md`, 사용자가 할 일은 `docs/setup.md`.
+- 코이노비아 앱(코이데·디다코·텔리오) 운영자용 정적 페이지. 공개 저장소, 주소 `admin.koinobia.com`.
+- 서버는 pray-for 저장소의 Supabase(`supabase/`의 SQL 함수)다. 허브(`apps-script/hub/`)는 쓰지 않는다(끄는 중). 서버 함수가 바뀌어야 하면 pray-for에서 따로 PR을 만든다.
+- 계획은 `docs/plan.md`(2026-11-19 이전 허브 기준은 지난 일), 약속과 결정은 `docs/design.md`, 사용자가 할 일은 `docs/setup.md`.
 
 ## 사용자
 - 비개발자 출신 교육 분야 기획자다. 개발 이야기는 천천히, 차근차근, 쉬운 말로 한다.
 
-## 일 나누기 (2026-11-09부터)
-- 계획과 검토는 Claude, 작업은 Codex가 한다.
-- **Codex**: Claude가 쓴 작업 지시서대로 `codex/` 브랜치에서 고치고, 확인하고, 커밋·push한 뒤 PR을 연다. PR 설명에 무엇이 어떻게 보이게 바뀌는지, 확인 결과, 지시서와 다르게 한 것과 그 이유를 적는다. 지시서로 정할 수 없는 화면 결정(색, 글씨, 배치, 화면에 쓰는 이름)은 바꾸지 말고 PR 설명에 질문으로 남긴다. 합치지 않는다.
-- **Claude**: 지시서를 쓰고 PR을 검토한다. 파일을 직접 고치지 않는다. 고칠 것은 고칠 것 지시서로 Codex에 넘긴다.
+## 일 나누기 (2026-11-19부터)
+- Claude가 계획·실행·검토를 나눠 한다(모델과 순서는 CLAUDE.md). 검토하는 쪽은 파일을 직접 고치지 않는다.
+- ChatGPT(Codex)가 맡는 일은 `codex/` 브랜치를 쓴다.
 - 합치기는 사용자에게 확인한 뒤 한다.
 
 ## 브랜치와 PR
@@ -22,25 +21,34 @@
 - main에 합치기는 사용자에게 확인한 뒤 한다.
 
 ## 코드 규칙
-- **서버 부르기는 `js/api.js` 한 파일에만 둔다.** `app.js`·`auth.js`는 `api.admin()`, `api.login(code)`처럼 뜻으로만 부르고 서버 주소·요청 모양을 모른다(나중에 Supabase로 갈아 끼우기 위해).
-- 서버가 준 글은 모두 `textContent`로만 넣는다(HTML로 해석하지 않는다).
-- 카카오 `?code`는 받자마자 `history.replaceState`로 주소에서 지운 뒤 로그인을 부른다.
-- 요청은 `login`, `admin`(이후 `churchSave`, `invite`, `enterPass`)뿐이다. 기록 내용(이름·기도제목)을 부르는 요청은 만들지 않는다.
-- `config.js`에는 공개 값만 둔다. `NEED_SERVER`는 코이데 `app/index.html`의 값과 손으로 맞춘다.
-- 화면 글과 주석은 한국어. 이모지·순위·그래프·교회끼리 비교하는 표시는 넣지 않는다.
+- **서버 부르기는 `js/api.js` 한 파일에만 둔다.** 화면 코드는 `api.today()`, `api.churchList()`처럼 뜻으로만 부르고 서버 함수 이름·요청 모양을 모른다(함수 이름 목록은 `docs/design.md` 4장 표).
+- 서버가 준 글은 모두 `textContent`로만 넣는다. `innerHTML`·`insertAdjacentHTML`·`eval`·`style` 속성을 쓰지 않는다.
+- `config.js`에는 `SUPABASE_URL`과 publishable 키까지만 둔다. `secret`·`service_role` 키는 어디에도 두지 않는다.
+- 로그인은 `supabase-js`가 한다. 로그인에서 돌아온 `?code`가 주소에 남지 않게 한다.
+- **기록 내용(이름·기도제목·기록 글)을 부르는 함수는 만들지 않는다.** 예외는 운영자가 읽으라고 받은 글 셋뿐이다: 의견함 글, 교회 신청서(연락처·대표 목사님 이름), 공동체 신고 상세.
+- 외부 CDN 스크립트는 쓰지 않는다. `js/vendor/`에는 `supabase.js` 하나만 둔다.
+
+## 화면 글과 숫자
+- 화면 글과 주석은 한국어. 이모지는 넣지 않는다.
+- **교회끼리 순위·비교는 넣지 않는다.** 교회 목록은 만든 순서이고 "많은 순" 정렬이 없다.
+- 숫자와 그래프는 이용 통계 메뉴에서만, 앱 전체 합계로만 보여 준다(교회·사람 단위로 나누지 않는다). 앱 화면은 숫자로 재지 않는다는 원칙은 앱 쪽 원칙이고, 운영자 사이트는 `docs/usage-stats.md`(pray-for) 1장대로 그래프를 허용한다.
+- 이용 통계는 `docs/usage-stats.md`의 선 5가지를 지킨다: 이름·내용을 모으지 않는다, 개인 단위로 보여 주지 않는다, 5명 미만은 가린다, 13개월만 본다, 처리방침을 먼저 한다. 가려진 값을 0으로 그리지 않는다.
 
 ## 디자인
 - 화면 색은 코이데 먹색(ink) 테마의 밝은 값이다. `css/admin.css` `:root`에 고정했고, 기기가 어두운 모드여도 늘 밝다(어두운 모드 분기를 두지 않는다). 코이데 색이 바뀌면 이 복사본도 손으로 맞춘다.
-- 새 색을 만들지 않는다. 새 버튼·카드는 `css/admin.css`의 비슷한 것을 본뜬다.
+- 새 색을 만들지 않는다. 새 버튼·카드는 `css/admin.css`의 비슷한 것을 본뜬다. 그래프 색도 기존 변수만 쓰고, 여러 줄은 선 모양(실선·점선)으로 구분한다.
 - 맡은 일이 아니면 색, 글씨, 여백, 배치, 화면에 쓰는 이름을 바꾸지 않는다. 화면을 바꾼 PR에는 어떻게 보이게 바뀌는지 설명에 적는다.
 
 ## 확인은 일의 크기에 맞게
-- 문서만: 화면 확인 없음. 글자·작은 것: 휴대폰 폭 한 장. 새 화면·로그인·데이터: 휴대폰·PC(늘 밝은 화면)를 `?demo`로 확인하고, 기기 설정을 어둡게 해도 밝은지 한 장 본다.
+- 문서만: 화면 확인 없음. 글자·작은 것: 휴대폰 폭 한 장.
+- 새 화면·로그인·데이터: `?demo`의 여러 모드(`?demo`, `?demo=out`, `?demo=notadmin`, `?demo=small`, `?demo=empty`, `?demo=error`)로 휴대폰·PC를 보고, 기기 설정을 어둡게 해도 밝은지 한 장 본다. 그래프는 `?demo=small`·`?demo=empty`도 본다.
+- SQL은 pray-for의 규칙대로 시험 DB에서 확인한다.
 
 ## 데이터와 비밀값
 - 실제 교회 이름·사람 이름·기도제목은 올리지 않는다. 데모는 지어낸 이름만.
-- `HUB_SECRET`, 카카오 Client Secret, 앱 관리자 카카오ID 목록, 시트 주소, 운영 웹 앱 주소는 커밋하지 않는다(아래 예외 하나). 커밋 전에 `grep -rniE "secret|spreadsheets|script.google.com/macros/s/" .`를 돌린다.
-- 예외: `config.js`의 `HUB_URL`(기본 서버 웹 앱 주소)과 `KAKAO_REST_KEY`(카카오 REST API 키)는 공개 값이라 커밋한다. 코이데 공개 저장소(koide)의 `app/config.js`에도 있는 값이고, 주소를 알아도 앱 관리자 카카오 계정이 아니면 아무것도 볼 수 없다. 위 검사에서 `config.js`의 `HUB_URL` 한 줄이 걸리는 것은 괜찮다. 다른 파일에 이 주소를 옮겨 적지 않는다.
+- `service_role` 키, `sb_secret` 키, Supabase 콘솔의 비밀값, 시트 주소, 옛 허브 비밀(`HUB_SECRET`)과 웹 앱 주소는 커밋하지 않는다. 커밋 전에 아래 검사를 돌려 결과가 비어 있어야 한다(`js/vendor/supabase.js`는 제외).
+  `grep -rniE "service_role|sb_secret|HUB_SECRET|spreadsheets|script.google.com/macros/s/" . --exclude-dir=.git --exclude-dir=vendor`
+- 예외: `config.js`의 `SUPABASE_URL`과 publishable 키는 공개 값이라 커밋한다. 데이터는 RLS와 관리자 함수가 지킨다.
 
 ## 문서
 - 새로 정한 것은 `docs/design.md` 결정 기록에 날짜와 이유를 남긴다. 설계의 기준은 `docs/design.md` 하나다.
