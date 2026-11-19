@@ -116,3 +116,30 @@ a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: n
 .aa-acts .btn[aria-pressed="true"] { background: var(--accent-soft); }
 .aa-form .aa-head { flex-wrap: wrap; }
 .aa-grid + .aa-add, .card + .aa-add { width: 100%; margin-top: 14px; min-height: 64px; }
+
+/* 의견함·공동체·저장 공간 */
+.fb-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.fb-when { margin: 0 0 0 auto; }
+.fb-bar { border-top: 0; padding-top: 0; margin-bottom: 14px; }
+.fb-more { margin-top: 14px; }
+.aa-stats.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.aa-stats.three dt { white-space: normal; }
+.aa-stats dd.st-mask { font-size: .75em; font-weight: 500; color: var(--ink-2); }
+.cm-detail { margin-top: .2em; }
+.cm-rep { padding-top: .5em; border-top: 1px solid var(--line); }
+.st-big { margin: 0 0 .5em; font-family: var(--f-display); font-size: 1.4em; font-weight: 700; }
+.st-bar { display: block; width: 100%; height: auto; }
+.st-track { fill: var(--surface-2); stroke: var(--line); }
+.st-fill { fill: var(--accent); }
+.st-fill.warn, .st-fill.bad { fill: var(--warn); }
+.st-tick { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 2 2; }
+.st-lab { fill: var(--ink-2); font-size: 9px; }
+.st-note { background: var(--accent-soft); }
+.st-note.bad { background: var(--warn-soft); }
+.st-note .msg { margin: 0; }
+.st-tbl-wrap { overflow-x: auto; padding: 8px 12px; }
+.st-tbl { width: 100%; border-collapse: collapse; font-size: .9em; }
+.st-tbl th, .st-tbl td { text-align: left; padding: .5em .4em; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.st-tbl th { color: var(--ink-2); font-weight: 600; font-size: .85em; }
+.st-tbl td:nth-child(n+2), .st-tbl th:nth-child(n+2) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-tbl tr:last-child td { border-bottom: 0; }

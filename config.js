@@ -6,5 +6,5 @@ window.ADMIN_CONFIG = {
   // 앱별 시작 주소
   APPS: { koide: 'https://koide.koinobia.com/app/', didako: 'https://didako.koinobia.com/note/' },
   // 이 화면의 버전. 푸터에 보인다
-  VERSION: '2026-11-19 교회 목록·스위치'
+  VERSION: '2026-11-19 의견함·공동체·저장 공간'
 };

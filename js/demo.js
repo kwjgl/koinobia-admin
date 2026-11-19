@@ -1,7 +1,8 @@
 /* ?demo: 가짜 서버. 화면 확인용이라 이름과 숫자는 모두 지어낸 것이다. 쓰기는 메모리에만 반영한다.
    ?demo  앱 관리자   ?demo=out  로그인 전   ?demo=notadmin  앱 관리자 아님   ?demo=error  첫 호출 실패
-   ?demo=empty  신청 없음(교회 목록은 그대로)
-   (?demo=small·?demo=empty는 이용 통계 PR에서 더한다. 이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
+   ?demo=empty  신청·의견·신고 없음(교회 목록은 그대로)   ?demo=small  공동체가 적어 5명 미만 가림 값이 나옴
+   ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
+   (이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
 (function () {
   const q = new URLSearchParams(location.search);
   if (!q.has('demo')) return;
@@ -43,12 +44,40 @@
     const c = mk('c-demo-' + (churches.length + 1), name, kind, '열림', [{ code, status: '열림' }], { members: 0, depts: 1, households: 0, linked: 0, admins: 0 }, false, false);
     churches.push(c); return c;
   };
+  // 의견함(HTML이 든 글은 글자로만 보이는지 보려는 것)
+  const fbAll = mode === 'empty' ? [] : [
+    { id: 5, at: '2026-11-19T08:10:00+09:00', kind: '불편해요', text: '글씨가 <b>너무 작아서</b> 읽기 힘들어요.\n두 번째 줄도 줄바꿈이 보여야 해요.', named: true, nick: '<i>예시</i>님', ver: 'v2026-11-18', width: 360, read: false },
+    { id: 4, at: '2026-11-18T21:40:00+09:00', kind: '이랬으면', text: '기도 시간을 알려 주면 좋겠어요.', named: false, nick: '', ver: 'v2026-11-18', width: 390, read: false },
+    { id: 3, at: '2026-11-17T12:00:00+09:00', kind: '고마워요', text: '매일 잘 쓰고 있어요. 고맙습니다.', named: false, nick: '', ver: 'v2026-11-10', width: 1280, read: true },
+    { id: 2, at: '2026-11-15T09:00:00+09:00', kind: '불편해요', text: '알림이 늦게 와요.', named: true, nick: '시험', ver: 'v2026-11-10', width: 412, read: true },
+    { id: 1, at: '2026-11-12T17:30:00+09:00', kind: '이랬으면', text: '다른 사람 기도제목을 한눈에 보고 싶어요.', named: false, nick: '', ver: 'v2026-11-01', width: 375, read: true }
+  ];
+  const fbUnread = () => fbAll.filter(f => !f.read).length;
+  // 공동체 점검(신고 글에도 HTML을 넣었다)
+  const comms = {
+    g1: { id: 'g1', name: '<b>아침</b> 기도 모임', status: '열림', created_at: '2026-10-02', endsOn: '2026-12-02', n: 8, reports: [{ at: '2026-11-18T10:00:00+09:00', reason: '기도제목이 맞지 않아요', note: '<b>굵게</b> 적힌 신고 글이에요.\n둘째 줄', status: '새로' }, { at: '2026-11-16T09:00:00+09:00', reason: '기도제목이 맞지 않아요', note: '', status: '새로' }, { at: '2026-11-10T09:00:00+09:00', reason: '다른 이유', note: '', status: '처리함' }] },
+    g2: { id: 'g2', name: '예시 공동체', status: '끝맺음', created_at: '2026-09-20', endsOn: '2026-11-25', n: 5, reports: [{ at: '2026-11-17T22:00:00+09:00', reason: '다른 이유', note: '', status: '새로' }] },
+    g3: { id: 'g3', name: '조용한 방', status: '열림', created_at: '2026-11-01', endsOn: '2026-12-31', n: 3, reports: [] }
+  };
+  const tokens = { 'demo-token': 'g1' };
+  const commReports = () => ({ items: mode === 'empty' ? [] : Object.values(comms).map(c => {
+    const nw = c.reports.filter(r => r.status === '새로');
+    return nw.length && c.status !== '닫음' ? { community_id: c.id, name: c.name, status: c.status, new_count: nw.length, total_count: c.reports.length, last_at: nw[0].at, reasons: nw.reduce((m, r) => { m[r.reason] = (m[r.reason] || 0) + 1; return m; }, {}) } : null;
+  }).filter(Boolean) });
+  const health = () => mode === 'small'
+    ? { by_status: { '열림': { n: null, small: true }, '끝맺음': { n: null, small: true }, '닫음': { n: null, small: true } }, avg_members_open: { v: null, small: true }, ending_14d: { n: null, small: true } }
+    : { by_status: { '열림': { n: 12, small: false }, '끝맺음': { n: 6, small: false }, '닫음': { n: 2, small: true } }, avg_members_open: { v: 6.4, small: false }, ending_14d: { n: 5, small: false } };
+  const dbPct = Math.min(100, Math.max(0, Number(q.get('db')) || 50));
+  const dbSize = () => ({
+    bytes: Math.round(524288000 * dbPct / 100), limit_bytes: 524288000, percent: dbPct, usage_events: 18342, oldest_event: '2026-04-21T03:00:00+09:00',
+    top_tables: [['usage_event', 61865984, 18342], ['church_item', 20971520, 9120], ['church_member', 4194304, 1210], ['church_household', 2097152, 640], ['auth_user', 1048576, 480], ['admin_log', 524288, 120], ['church_dept', 262144, 60], ['church_code', 131072, 30], ['church_link', 65536, 12], ['koide_setting', 32768, 6]].map(t => ({ table: t[0], bytes: t[1], rows: t[2] }))
+  });
   const today = () => ({
     apply: { pending: applies.filter(a => a.status === '대기').length, made: applies.filter(a => a.status === '만듦').length },
-    feedback_unread: 2,
-    reports_new: 1,
+    feedback_unread: fbUnread(),
+    reports_new: commReports().items.reduce((n, i) => n + i.new_count, 0),
     churches: { total: churches.length, test: churches.filter(c => c.kind === '테스트').length, stopped: churches.filter(c => c.status === '멈춤').length, no_admin: churches.filter(c => !c.has_admin).length },
-    db: { bytes: 262144000, limit_bytes: 524288000, percent: 50 },
+    db: { bytes: dbSize().bytes, limit_bytes: 524288000, percent: dbPct },
     switches: Object.assign({}, settings)
   });
   window.AdminDemo = {
@@ -75,6 +104,30 @@
           if (r.length > 60) throw bad('사유는 60자 이하로 적어 주세요.');
           it.status = '거절'; it.reason = r; return ok(applyList());
         }
+        if (name === 'admin_feedback_list') {
+          const lim = Math.min(200, Math.max(1, Number(a.p_limit) || 50));
+          const items = fbAll.filter(f => !a.p_unread_only || !f.read).slice(0, lim);
+          return ok({ unread: fbUnread(), items: JSON.parse(JSON.stringify(items)) });
+        }
+        if (name === 'admin_feedback_mark_read') {
+          const f = fbAll.find(x => x.id === a.p_id);
+          if (!f) throw bad('그 의견을 찾을 수 없어요.');
+          f.read = true; return ok({ ok: true });
+        }
+        if (name === 'admin_community_health') return ok(health());
+        if (name === 'admin_community_reports') return ok(commReports());
+        if (name === 'admin_community_lookup') {
+          const c = comms[String(a.p_key || '').trim()] || comms[tokens[String(a.p_key || '').trim()]];
+          if (!c) throw bad('공동체를 찾을 수 없어요.');
+          return ok(JSON.parse(JSON.stringify(c)));
+        }
+        if (name === 'admin_community_close') {
+          const c = comms[a.p_id];
+          if (!c) throw bad('공동체를 찾을 수 없어요.');
+          c.status = '닫음'; c.reports.forEach(r => { if (r.status === '새로') r.status = '처리함'; });
+          return ok({ ok: true });
+        }
+        if (name === 'admin_db_size') return ok(dbSize());
         if (name === 'admin_church_list') return ok(cList());
         if (name === 'admin_setting_list') return ok(sList());
         if (name === 'admin_log_list') return ok({ items: JSON.parse(JSON.stringify(logs)) });
