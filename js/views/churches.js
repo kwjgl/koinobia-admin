@@ -47,7 +47,7 @@
     async function act(errNode, call, apply, okMsg) {
       if (st.busy) return;
       st.busy = true; errNode.hidden = true;
-      sec.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      sec.querySelectorAll('button:not(.tip-btn)').forEach(b => { b.disabled = true; });
       try {
         const r = await call();
         apply(r); st.busy = false;
@@ -55,7 +55,7 @@
         redraw(); reloadLog();
       } catch (e) {
         st.busy = false;
-        sec.querySelectorAll('button').forEach(b => { b.disabled = false; });
+        sec.querySelectorAll('button:not(.tip-btn)').forEach(b => { b.disabled = false; });
         errNode.textContent = e.message || '하지 못했어요.'; errNode.hidden = false;
       }
     }
@@ -63,30 +63,37 @@
     const setList = r => { st.list = r.items || []; };
 
     // ---- 스위치 ----
+    // 한 줄 행: 이름과 도움말, 세그먼트 단추. 칸을 누르면 값을 '고르기'만 하고(서버에 안 보냄) 확정 상자가 열린다. 서버에 가는 단추는 확정 상자 안의 하나뿐이다
     function switchRow(key, name, desc) {
-      const cur = (st.sw.find(x => x.key === key) || {}).value;
-      const opts = (st.sw.find(x => x.key === key) || {}).allowed || [];
-      const pick = st.pick[key] || cur;
-      const sel = el('select', { class: 'field', 'aria-label': name + ' 값' }, ...opts.map(o => el('option', { value: o, selected: o === pick }, SW[o] || o)));
-      const btn = el('button', { class: 'btn small', type: 'button', disabled: !pick || pick === cur }, '바꾸기');
-      sel.addEventListener('change', () => { st.pick[key] = sel.value; btn.disabled = sel.value === cur; });
-      btn.addEventListener('click', () => { st.pick[key] = sel.value; st.swAsk = key; redraw(); });
-      const kids = [el('div', { class: 'aa-head' }, el('b', null, name), el('span', { class: 'own-tag' }, SW[cur] || '정해지지 않음')),
-        el('p', { class: 'hint' }, desc), el('div', { class: 'actions' }, sel, btn)];
-      if (st.swAsk === key) {
-        const to = st.pick[key], err = errP();
+      const item = st.sw.find(x => x.key === key) || {};
+      const cur = item.value, allowed = item.allowed || [];
+      const opts = ['off', 'admins', 'on'].filter(o => allowed.includes(o));
+      const to = st.pick[key];
+      const seg = el('div', { class: 'sw-seg', role: 'group', 'aria-label': name + ' 값' }, ...opts.map(o => el('button', {
+        class: 'sw-opt' + (to === o && o !== cur ? ' pending' : ''), type: 'button', 'aria-pressed': String(o === cur), 'data-sw': key + ':' + o,
+        onclick: () => {
+          if (o === cur || st.busy) return;
+          st.pick[key] = o; st.swAsk = key; redraw();
+          const b = sec.querySelector('[data-sw="' + key + ':' + o + '"]'); if (b) b.focus();
+        } }, SW[o] || o)));
+      const label = el('span', { class: 'sw-name' }, el('b', null, name), cur ? null : el('span', { class: 'own-tag' }, '정해지지 않음'));
+      const kids = [UI.withInfo(label, desc, { label: name + ' 도움말' }), seg];
+      if (st.swAsk === key && to && to !== cur) {
+        const err = errP();
         const needOk = to === 'on' && NEED_OK.includes(key);
         const ok = el('input', { type: 'checkbox' });
+        const wait = el('p', { class: 'hint' }, '위 확인에 체크하면 눌러져요');
         const go = el('button', { class: 'btn small', type: 'button', disabled: needOk }, '바꾸기 확정');
-        ok.addEventListener('change', () => { go.disabled = !ok.checked; });
+        ok.addEventListener('change', () => { go.disabled = !ok.checked; wait.hidden = ok.checked; });
         go.addEventListener('click', () => act(err, () => api.settingSet(key, to), r => { st.sw = r.items || []; st.swAsk = null; delete st.pick[key]; }, name + ': ' + (SW[to] || to) + '(으)로 바꿨어요.'));
         kids.push(el('div', { class: 'aa-link' },
           el('p', { class: 'msg' }, name + ' 스위치를 ' + (SW[cur] || '정해지지 않음') + '에서 ' + (SW[to] || to) + '(으)로 바꿔요. ' + desc),
           needOk ? el('label', { class: 'check' }, ok, '개인정보 처리방침과 준비를 마쳤어요') : null,
           err,
-          el('div', { class: 'actions' }, go, el('button', { class: 'btn small ghost', type: 'button', onclick: () => { st.swAsk = null; redraw(); } }, '돌아가기'))));
+          el('div', { class: 'actions' }, go, el('button', { class: 'btn small ghost', type: 'button', onclick: () => { delete st.pick[key]; st.swAsk = null; redraw(); } }, '돌아가기')),
+          needOk ? wait : null));
       }
-      return el('div', { class: 'aa-app' }, ...kids);
+      return el('div', { class: 'sw-row' }, ...kids);
     }
 
     // ---- 교회 카드의 펼침 칸 ----
@@ -123,9 +130,9 @@
       });
       function run(code, op) { act(err, () => api.churchCode(c.id, code, op), r => { setList(r); delete st.ask[c.id]; }, op === 'stop' ? '코드를 멈췄어요.' : '코드를 풀었어요.'); }
       const inp = el('input', { class: 'field', type: 'text', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters', placeholder: '새 코드', 'aria-label': '새 코드' });
-      const prev = el('p', { class: 'hint' }, '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요. 코드는 지우지 않고 멈춰요.');
-      inp.addEventListener('input', () => { const n = norm(inp.value); prev.textContent = n ? '이렇게 저장돼요: ' + n : '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요. 코드는 지우지 않고 멈춰요.'; });
-      return el('div', { class: 'aa-form' }, ...rows, el('label', { class: 'f' }, '코드 더하기'), inp, prev, err,
+      const prev = el('p', { class: 'hint', hidden: true });
+      inp.addEventListener('input', () => { const n = norm(inp.value); prev.textContent = n ? '이렇게 저장돼요: ' + n : ''; prev.hidden = !n; });
+      return el('div', { class: 'aa-form' }, ...rows, UI.withInfo(el('label', { class: 'f' }, '코드 더하기'), '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요. 코드는 지우지 않고 멈춰요.', { label: '코드 더하기 도움말' }), inp, prev, err,
         el('div', { class: 'actions' },
           el('button', { class: 'btn small', type: 'button', onclick: () => {
             const n = norm(inp.value);
@@ -185,8 +192,8 @@
       const kind = el('select', { class: 'field', 'aria-label': '종류' }, el('option', { value: '교회' }, '교회'), el('option', { value: '테스트' }, '테스트 (시험 공간)'));
       const code = el('input', { class: 'field', type: 'text', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters', 'aria-label': '코드' });
       const dept = el('input', { class: 'field', type: 'text', maxlength: '12', value: '첫 부서', autocomplete: 'off', 'aria-label': '첫 부서 이름' });
-      const prev = el('p', { class: 'hint' }, '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.');
-      code.addEventListener('input', () => { const n = norm(code.value); prev.textContent = n ? '이렇게 저장돼요: ' + n : '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.'; });
+      const prev = el('p', { class: 'hint', hidden: true });
+      code.addEventListener('input', () => { const n = norm(code.value); prev.textContent = n ? '이렇게 저장돼요: ' + n : ''; prev.hidden = !n; });
       const showErr = m => { err.textContent = m; err.hidden = !m; };
       const fields = [name, kind, code, dept];
       function edit() {
@@ -208,10 +215,9 @@
           el('button', { class: 'btn small ghost', type: 'button', onclick: edit }, '다시 고치기'));
       }
       edit();
-      return el('div', { class: 'card aa-card' }, el('h2', null, '교회 만들기'),
-        el('p', { class: 'hint' }, '신청 없이 직접 만들 때, 또는 시험 공간을 만들 때 써요.'),
+      return el('div', { class: 'card aa-card' }, UI.withInfo(el('h2', null, '교회 만들기'), '신청 없이 직접 만들 때, 또는 시험 공간을 만들 때 써요.'),
         el('div', { class: 'aa-form' }, el('label', { class: 'f' }, '교회 이름'), name, el('label', { class: 'f' }, '종류'), kind,
-          el('label', { class: 'f' }, '코드'), code, prev, el('label', { class: 'f' }, '첫 부서 이름'), dept, err, actions));
+          UI.withInfo(el('label', { class: 'f' }, '코드'), '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.', { label: '코드 도움말' }), code, prev, el('label', { class: 'f' }, '첫 부서 이름'), dept, err, actions));
     }
 
     function logBox() {
@@ -224,7 +230,7 @@
     function build() {
       const kids = [el('h1', null, '교회'),
         el('p', { class: 'eyebrow' }, '스위치'),
-        el('div', { class: 'card' }, ...SWITCHES.map(([k, n, d]) => switchRow(k, n, d))),
+        el('div', { class: 'card sw-list' }, ...SWITCHES.map(([k, n, d]) => switchRow(k, n, d))),
         el('p', { class: 'eyebrow' }, '교회 ' + st.list.length + '곳 (만든 순서)')];
       kids.push(st.list.length ? el('div', { class: 'aa-grid' }, ...st.list.map(card)) : el('div', { class: 'card' }, el('p', { class: 'msg' }, '아직 교회가 없어요.')));
       kids.push(st.add ? addForm() : el('button', { class: 'aa-add', type: 'button', onclick: () => { st.add = true; redraw(); } }, el('span', null, '+'), '교회 만들기'));

@@ -39,9 +39,10 @@
   // 카드: 제목, 설명, (선택) 도구 줄, 불러오는 함수, 그리는 함수. 실패해도 이 카드에만 오류 문구가 보인다
   function card(title, hint, tools, load, draw, token) {
     const body = el('div', { class: 'us-body' }, el('p', { class: 'loading' }, '불러오는 중…'));
-    const c = el('div', { class: 'card us-card' }, el('h2', null, title), hint ? el('p', { class: 'hint' }, hint) : null, tools, body);
+    const c = el('div', { class: 'card us-card' }, el('div', { class: 'us-hd' }, UI.withInfo(el('h2', null, title), hint, { label: title + ' 도움말' }), tools), body);
     load().then(d => {
       if (token !== S.seq) return;
+      C.setWidth(body.clientWidth);
       let n;
       try { C.setMasking(JSON.stringify(d || {}).includes('"small":true')); n = draw(d); } catch (e) { n = el('p', { class: 'aa-err' }, '그래프를 그리지 못했어요.'); console.error('draw', e); }
       body.replaceChildren(n);
@@ -58,7 +59,7 @@
   }
   const tools = (...k) => el('div', { class: 'us-tools' }, ...k);
   const note = t => el('p', { class: 'hint' }, t);
-  const nothing = t => el('p', { class: 'msg' }, t);
+  const nothing = t => el('p', { class: 'msg us-empty' }, t);
 
   // ---- 한눈에 ----
   function glance(tk) {
@@ -76,7 +77,7 @@
           const out = el('div', null);
           if (!seen.length) out.append(note('이 기간은 모두 ' + MASK_NOTE()));
           out.append(C.figure({
-            svg: C.line(s.map(x => C.plabel(x.period, g)), [{ name: '활동한 사람', values: vals }], { area: true, label: '활동한 사람 꺾은선 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' + (seen.length ? ', 보이는 값은 ' + Math.min(...seen) + '명에서 ' + Math.max(...seen) + '명' : '') }),
+            svg: C.line(s.map(x => C.plabel(x.period, g)), [{ name: '활동한 사람', values: vals }], { area: true, unit: '명', full: s.map(x => C.plong(x.period, g)), label: '활동한 사람 꺾은선 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' + (seen.length ? ', 보이는 값은 ' + Math.min(...seen) + '명에서 ' + Math.max(...seen) + '명' : '') }),
             legend: [['s1', '활동한 사람'], ['mask', C.MASK + '이라 가린 기간']],
             table: { head: ['기간', '활동한 사람', '사건 수'], rows: s.map(x => [x.period, C.pick(x.active, 'n') == null ? null : C.fmtN(C.pick(x.active, 'n')), C.pick(x.events, 'n') == null ? null : C.fmtN(C.pick(x.events, 'n'))]) }
           }));
@@ -104,7 +105,7 @@
           const out = el('div', null);
           if (!seen.length) out.append(note('모두 ' + MASK_NOTE()));
           out.append(C.figure({
-            svg: C.line(ms.map(lab), [{ name: '고착도', values: vals.map(v => v == null ? null : C.f1(v * 100)) }], { area: true, fmt: v => v + '%', top: Math.max(10, Math.ceil(Math.max(0, ...seen.map(v => v * 100)) * 1.25 / 5) * 5), partial: ms.map(m => !!m.partial), label: '고착도 꺾은선 그래프. 달 ' + ms.length + '개, 가려진 달 ' + (ms.length - seen.length) + '개' + (ms.some(m => m.partial) ? ', 이번 달은 진행 중' : '') + (seen.length ? ', 보이는 값은 ' + C.pct(Math.min(...seen)) + '에서 ' + C.pct(Math.max(...seen)) : '') }),
+            svg: C.line(ms.map(lab), [{ name: '고착도', values: vals.map(v => v == null ? null : C.f1(v * 100)) }], { area: true, fmt: v => v + '%', full: ms.map(m => { const x = /^(\d{4})-(\d{2})/.exec(m.month || ''); return x ? x[1] + '년 ' + Number(x[2]) + '월' : String(m.month); }), partial: ms.map(m => !!m.partial), label: '고착도 꺾은선 그래프. 달 ' + ms.length + '개, 가려진 달 ' + (ms.length - seen.length) + '개' + (ms.some(m => m.partial) ? ', 이번 달은 진행 중' : '') + (seen.length ? ', 보이는 값은 ' + C.pct(Math.min(...seen)) + '에서 ' + C.pct(Math.max(...seen)) : '') }),
             legend: [['s1', '고착도(달 단위)'], ['hollow', '이번 달(진행 중)'], ['mask', C.MASK + '이라 가린 달']],
             table: { head: ['달', '한 달 활동자', '하루 평균 활동자', '고착도', ''], rows: ms.map(m => [m.month, num(m.mau, 'n') == null ? null : C.fmtN(m.mau.n), num(m.dau_avg, 'v') == null ? null : String(m.dau_avg.v), C.pick(m.ratio, 'r') == null ? null : C.pct(m.ratio.r), m.partial ? '진행 중' : '']) }
           }));
@@ -122,12 +123,12 @@
         d => {
           const s = d.series || [], g = d.grain || S.nrGrain;
           if (!s.length) return nothing('이 기간에는 기록이 없어요.');
-          const cols = s.map(x => ({ label: C.plabel(x.period, g), vs: [C.pick(x.new, 'n'), C.pick(x.returning, 'n')] }));
+          const cols = s.map(x => ({ label: C.plabel(x.period, g), full: C.plong(x.period, g), vs: [C.pick(x.new, 'n'), C.pick(x.returning, 'n')] }));
           const seen = cols.filter(c => c.vs.some(v => v != null)).length, out = el('div', null);
           if (!seen) out.append(note('이 기간은 모두 ' + MASK_NOTE()));
           const cell = o => C.pick(o, 'n') == null ? null : C.fmtN(C.pick(o, 'n'));
           out.append(C.figure({
-            svg: C.barsStack(cols, ['새로 온 사람', '다시 온 사람'], { label: '새로 온 사람과 다시 온 사람 누적 막대 그래프. 기간 ' + s.length + '개, 둘 다 가려진 기간 ' + (s.length - seen) + '개' }),
+            svg: C.barsStack(cols, ['새로 온 사람', '다시 온 사람'], { unit: '명', label: '새로 온 사람과 다시 온 사람 누적 막대 그래프. 기간 ' + s.length + '개, 둘 다 가려진 기간 ' + (s.length - seen) + '개' }),
             legend: [['f1', '새로 온 사람'], ['f2', '다시 온 사람'], ['mask', C.MASK + '이라 가림']],
             table: { head: ['기간', '새로 온 사람', '다시 온 사람'], rows: s.map(x => [x.period, cell(x.new), cell(x.returning)]) }
           }));
@@ -138,12 +139,12 @@
         d => {
           const s = d.series || [];
           if (!s.length) return nothing('이 기간에는 기록이 없어요.');
-          const cols = s.map(x => ({ label: C.plabel(x.period, sg), v: C.pick(x.new, 'n') })), seen = cols.filter(c => c.v != null);
+          const cols = s.map(x => ({ label: C.plabel(x.period, sg), full: C.plong(x.period, sg), v: C.pick(x.new, 'n') })), seen = cols.filter(c => c.v != null);
           const cell = o => C.pick(o, 'n') == null ? null : C.fmtN(C.pick(o, 'n'));
           const out = el('div', null);
           if (!seen.length) out.append(note('이 기간은 모두 ' + MASK_NOTE()));
           out.append(C.figure({
-            svg: C.barsV(cols, { label: '새로 온 계정 막대 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' }),
+            svg: C.barsV(cols, { unit: '명', label: '새로 온 계정 막대 그래프. 기간 ' + s.length + '개, 가려진 기간 ' + (s.length - seen.length) + '개' }),
             legend: [['f1', '새 계정'], ['mask', C.MASK + '이라 가린 기간']],
             table: { head: ['기간', '새 계정', '누적'], rows: s.map(x => [x.period, cell(x.new), cell(x.cumulative)]) }
           }));
@@ -206,8 +207,7 @@
     const custom = S.flow === 'custom';
     const fa = S.app || 'koide';
     const head = el('div', { class: 'card us-card' },
-      el('h2', null, '단계별 흐름'),
-      el('p', { class: 'hint' }, '순서대로 단계를 밟은 사람 수예요. 단계 사이에 건너뛴 화면이 있어도 괜찮아요.'),
+      UI.withInfo(el('h2', null, '단계별 흐름'), '순서대로 단계를 밟은 사람 수예요. 단계 사이에 건너뛴 화면이 있어도 괜찮아요.', { label: '단계별 흐름 도움말' }),
       el('div', { class: 'us-tools' },
         ...FLOWS.map((f, i) => el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(S.flow === i), onclick: () => { S.flow = i; panel(); } }, f.name)),
         el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(custom), onclick: () => { S.flow = 'custom'; panel(); } }, '직접 고르기'),
@@ -217,8 +217,8 @@
     else { steps = S.customGo; name = '직접 고른 흐름'; hint = ''; app = fa; }
     const out = [head];
     if (custom) {
-      const picker = el('div', { class: 'card us-card' }, el('h2', null, '단계 고르기'),
-        el('p', { class: 'hint' }, appName(fa) + '의 기능 이름에서 2~8개를 순서대로 골라 주세요.'), el('p', { class: 'loading' }, '불러오는 중…'));
+      const pickTitle = () => UI.withInfo(el('h2', null, '단계 고르기'), appName(fa) + '의 기능 이름에서 2~8개를 순서대로 골라 주세요.', { label: '단계 고르기 도움말' });
+      const picker = el('div', { class: 'card us-card' }, pickTitle(), el('p', { class: 'loading' }, '불러오는 중…'));
       get('features', { app: fa }).then(d => {
         if (tk !== S.seq) return;
         const items = (d.items || []).filter(i => i.app === fa && i.kind !== 'error');
@@ -228,7 +228,7 @@
           return s;
         });
         const msg = el('p', { class: 'aa-err' });
-        picker.replaceChildren(el('h2', null, '단계 고르기'), el('p', { class: 'hint' }, appName(fa) + '의 기능 이름에서 2~8개를 순서대로 골라 주세요.'),
+        picker.replaceChildren(pickTitle(),
           ...sels.map((s, i) => el('div', { class: 'us-pick' }, el('span', { class: 'hint' }, (i + 1) + '단계'), s)), msg,
           el('button', { class: 'btn small', type: 'button', onclick: () => {
             const st = S.custom.filter(Boolean);
@@ -287,12 +287,12 @@
           const bs = d.buckets || [];
           if (!bs.length) return nothing('이 기간에는 기록이 없어요.');
           const name = b => b.to == null ? b.from + '일 이상' : b.from === b.to ? b.from + '일' : b.from + '~' + b.to + '일';
-          const cols = bs.map(b => ({ label: name(b).replace('일', ''), v: C.pick(b.users, 'n') })), seen = cols.filter(c => c.v != null).length;
+          const cols = bs.map(b => ({ label: name(b).replace('일', ''), full: name(b), v: C.pick(b.users, 'n') })), seen = cols.filter(c => c.v != null).length;
           const out = el('div', null, note('이 기간 활동한 사람: ' + (C.pick(d.active, 'n') == null ? C.mk() : C.fmtN(d.active.n) + '명') + ' · 최근 ' + d.days + '일'));
           if (!seen) out.append(note('모두 ' + MASK_NOTE()));
           out.append(C.figure({
-            svg: C.barsV(cols, { label: '사용 빈도 막대 그래프. 구간 ' + bs.length + '개, 가려진 구간 ' + (bs.length - seen) + '개' }),
-            legend: [['f1', '그 구간의 사람 수(가로축은 온 날 수)'], ['mask', C.MASK + '이라 가림']],
+            svg: C.barsV(cols, { unit: '명', label: '사용 빈도 막대 그래프. 구간 ' + bs.length + '개, 가려진 구간 ' + (bs.length - seen) + '개' }),
+            legend: [['f1', '사람 수'], ['mask', C.MASK + '이라 가림']],
             table: { head: ['온 날 수', '사람 수'], rows: bs.map(b => [name(b), C.pick(b.users, 'n') == null ? null : C.fmtN(b.users.n)]) }
           }));
           return out;
@@ -323,7 +323,7 @@
         const out = el('div', null);
         if (!seen) out.append(note('모두 ' + MASK_NOTE()));
         out.append(C.figure({
-          svg: (() => { const s = C.heat(cs); s.setAttribute('aria-label', '요일과 시간대 지도. 기록이 있는 칸 ' + cs.length + '개, 가려진 칸 ' + (cs.length - seen) + '개'); return s; })(),
+          svg: C.heat(cs, { label: '요일과 시간대 지도. 기록이 있는 칸 ' + cs.length + '개, 가려진 칸 ' + (cs.length - seen) + '개' }),
           legend: [['ramp', '진할수록 그 시간의 사건이 많아요'], ['mask', C.MASK + '이라 가림'], ['empty', '기록 없음']],
           table: { head: ['요일', '시간', '사건 수'], rows: cs.map(c => [days[c.dow] || '', c.hour + '시', C.pick(c.events, 'n') == null ? null : C.fmtN(C.pick(c.events, 'n'))]) }
         }));
@@ -348,9 +348,9 @@
         items.forEach(i => {
           if (!okOf(i)) return;
           out.append(el('p', { class: 'label us-sub' }, nm(i) + ' · 머문 시간 구간별 횟수'));
-          const bs = i.buckets || [], cols = bs.map(b => ({ label: b.label, v: C.pick(b.events, 'n') }));
+          const bs = i.buckets || [], cols = bs.map(b => ({ label: b.label, full: b.label, v: C.pick(b.events, 'n') }));
           out.append(C.figure({
-            svg: C.barsV(cols, { h: 130, label: i.label + ' 머문 시간 구간별 횟수 히스토그램' }),
+            svg: C.barsV(cols, { h: 110, unit: '번', label: i.label + ' 머문 시간 구간별 횟수 히스토그램' }),
             legend: [['f1', '구간별 횟수'], ['mask', C.MASK + '이라 가림']],
             table: { head: ['머문 시간', '횟수'], rows: bs.map(b => [b.label, C.pick(b.events, 'n') == null ? null : C.fmtN(b.events.n)]) }
           }));
@@ -396,7 +396,7 @@
           const b = d.buckets || [], by = d.by_app || [];
           const out = el('div', null);
           out.append(donutOf(b.map(x => ({ k: x.apps, users: x.users })), k => '앱 ' + k + '개 쓴 사람', '쓴 앱 수', x => ({ 1: 'q2', 2: 'q4', 3: 'q5' })[x.k] || 'q3'));
-          out.append(el('p', { class: 'label' }, '앱별 사용한 사람(여러 앱을 쓴 사람은 각 앱에 한 번씩 들어가요)'));
+          out.append(UI.withInfo(el('p', { class: 'label' }, '앱별 사용한 사람'), '여러 앱을 쓴 사람은 각 앱에 한 번씩 들어가요.', { label: '앱별 사용한 사람 도움말' }));
           out.append(barsOf(by.map(x => ({ k: x.app, users: x.users })), k => appName(k), '앱'));
           return out;
         }, tk)
@@ -443,8 +443,7 @@
       select('앱', APPS, S.app, v => { S.app = v; panel(); }),
       select('기간', [[7, '최근 7일'], [30, '최근 30일'], [90, '최근 90일'], [365, '최근 365일']], S.days, v => { S.days = Number(v); panel(); }),
       el('button', { class: 'btn small ghost', type: 'button', onclick: () => { cache.clear(); panel(); } }, '다시 불러오기'));
-    const sec = el('section', null, el('h1', null, '이용 통계'),
-      el('p', { class: 'hint' }, '앱 전체 합계만 보여요. 사람이나 교회별로 나누지 않아요.'),
+    const sec = el('section', null, UI.withInfo(el('h1', null, '이용 통계'), '앱 전체 합계만 보여요. 사람이나 교회별로 나누지 않아요.'),
       banner(), ctl, tabs, panelEl);
     panel();
     return sec;

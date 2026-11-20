@@ -6,7 +6,10 @@
 (function () {
   const { el } = UI;
   const NS = 'http://www.w3.org/2000/svg';
-  const W = window.innerWidth >= 700 ? 720 : 360;  // 모든 그래프의 가로 눈금(viewBox). 넓은 화면은 눈금을 넓혀 글씨가 커지지 않게 한다
+  // 모든 그래프의 가로 눈금(viewBox). 카드를 그리기 직전에 setWidth(상자 폭)로 정해 눈금이 화면과 거의 1:1이 되게 한다(글씨가 늘어나지 않는다). 폭을 모르면 360/560
+  let W = window.innerWidth >= 700 ? 560 : 360;
+  const setWidth = px => { W = px > 0 ? clamp(Math.round(px), 320, 900) : (window.innerWidth >= 700 ? 560 : 360); };
+  const maxbw = () => W > 400 ? 30 : 24;           // 막대 최대 폭: 칸이 적어도 막대가 두껍게 늘어나지 않는다
   const MASK = '5명 미만';
   // 가림 표시는 서버가 small:true를 준 응답일 때만 켠다(setMasking). 꺼져 있으면 값이 null이어도 "5명 미만"이 아니라 "—"와 빈 자리로 그린다
   let masking = true;
@@ -21,6 +24,7 @@
     return n;
   }
   const txt = (x, y, s, cls, anchor) => svg('text', { x, y, class: cls || 'gr-txt', 'text-anchor': anchor || 'start' }, s);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const fmtN = v => Number(v).toLocaleString('ko-KR');
   const pct = r => (Math.round(Number(r) * 1000) / 10) + '%';
   const f1 = n => Math.round(n * 10) / 10;
@@ -33,6 +37,14 @@
     const p = Math.pow(10, Math.floor(Math.log10(m))), f = m / p;
     return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
   }
+  // 정수 눈금: 간격 1·2·5×10^k 중 칸 수가 maxSteps 이하인 가장 작은 것. max<=0이면 {top:1, ticks:[0,1]}
+  function niceScale(max, maxSteps) {
+    const m = Math.max(1, Math.ceil(max || 0)), N = maxSteps || 5;
+    for (let p = 1; ; p *= 10) for (const f of [1, 2, 5]) {
+      const step = f * p;
+      if (Math.ceil(m / step) <= N) { const top = Math.ceil(m / step) * step; return { top, ticks: Array.from({ length: top / step + 1 }, (_, i) => i * step) }; }
+    }
+  }
   // 기간 글자: day 11/19, week 11/17 주, month 26.11
   function plabel(p, grain) {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(p || ''));
@@ -40,12 +52,79 @@
     if (grain === 'month') return m[1].slice(2) + '.' + Number(m[2]);
     return Number(m[2]) + '/' + Number(m[3]) + (grain === 'week' ? '주' : '');
   }
+  // 말풍선용 긴 기간 글: day 11월 19일, week 11월 17일부터 한 주, month 2026년 11월
+  function plong(p, grain) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(p || ''));
+    if (!m) return String(p || '');
+    if (grain === 'month') return m[1] + '년 ' + Number(m[2]) + '월';
+    return Number(m[2]) + '월 ' + Number(m[3]) + '일' + (grain === 'week' ? '부터 한 주' : '');
+  }
   // 위쪽 숫자 라벨이 그래프 밖으로 나가지 않게 글자 정렬을 고른다
   const anchorAt = (x, lo, hi) => x < lo + 14 ? 'start' : x > hi - 14 ? 'end' : 'middle';
-  const gridY = (g, L, R, T, ph, top, fmt, ticks) => (ticks || [0, .5, 1]).forEach(f => {
-    const y = T + ph - f * ph;
-    g.append(svg('line', { class: 'gr-grid', x1: L, y1: y, x2: R, y2: y }), txt(L - 4, y + 3, fmt(top * f), 'gr-txt', 'end'));
+  const gridY = (g, L, R, T, ph, scale, fmt) => scale.ticks.forEach(v => {
+    const y = T + ph - v / scale.top * ph;
+    g.append(svg('line', { class: 'gr-grid', x1: L, y1: y, x2: R, y2: y }), txt(L - 4, y + 3, fmt(v), 'gr-txt', 'end'));
   });
+
+  // ---- 값 말풍선(마우스 올림·탭·키보드). 위치는 SVG 속성(x, y, transform)으로만 옮긴다(style 속성 없음) ----
+  // o: {rect:{x,y,w,h} 훑을 영역, n 칸 수, at(x,y)→칸|-1, view(i)→{ax,ay,lines,hl,guide,dots}, keys:'x'|'xy', cols}
+  let openTip = null;
+  document.addEventListener('pointerdown', e => { if (openTip && !openTip.g.contains(e.target)) openTip.hide(); });
+  function tip(g, H, o) {
+    const VBW = W, on = (n, v) => v ? n.classList.add('on') : n.classList.remove('on');
+    const hl = svg('rect', { class: 'gr-hl' }), guide = svg('line', { class: 'gr-guide' }), dots = [];
+    g.insertBefore(hl, g.firstChild);
+    g.append(guide);
+    const label = (g.getAttribute('aria-label') || '그래프') + ' 좌우 방향키로 값을 하나씩 읽을 수 있어요';
+    const hit = svg('rect', { class: 'gr-hit', x: o.rect.x, y: o.rect.y, width: o.rect.w, height: o.rect.h, tabindex: '0', role: 'group', 'aria-label': label });
+    const bg = svg('rect', { class: 'gr-tipbg', rx: 6, x: 0, y: 0, width: 10, height: 10 }), tt = svg('text', { class: 'gr-tipt', x: 8, y: 0 });
+    const bubble = svg('g', { class: 'gr-tip' }, bg, tt);
+    g.setAttribute('role', 'group');
+    g.append(hit, bubble);   // 말풍선은 맨 위
+    let last = -1, ptr = false;
+    function hide() {
+      on(bubble, false); on(hl, false); on(guide, false); dots.forEach(d => on(d, false));
+      if (openTip && openTip.g === g) openTip = null;
+    }
+    function show(i, say) {
+      const v = i >= 0 && i < o.n ? o.view(i) : null;
+      if (!v) { hide(); return; }
+      if (openTip && openTip.g !== g) openTip.hide();
+      openTip = { g, hide }; last = i;
+      if (v.hl) { Object.entries(v.hl).forEach(([k, x]) => hl.setAttribute(k === 'w' ? 'width' : k === 'h' ? 'height' : k, x)); on(hl, true); } else on(hl, false);
+      if (v.guide) { guide.setAttribute('x1', v.guide.x); guide.setAttribute('x2', v.guide.x); guide.setAttribute('y1', v.guide.y1); guide.setAttribute('y2', v.guide.y2); on(guide, true); } else on(guide, false);
+      const ds = v.dots || [];
+      ds.forEach((d, k) => {
+        if (!dots[k]) { dots[k] = svg('circle', { r: 5 }); g.insertBefore(dots[k], hit); }
+        dots[k].setAttribute('class', 'gr-pt ' + d.cls + ' on'); dots[k].setAttribute('cx', d.x); dots[k].setAttribute('cy', d.y);
+      });
+      dots.slice(ds.length).forEach(d => on(d, false));
+      tt.replaceChildren(...v.lines.map((ln, k) => svg('tspan', { x: 8, dy: k ? 14 : 0, class: k === 0 ? 'h' : null }, ln)));
+      tt.setAttribute('y', 0); on(bubble, true);          // 보여야 크기를 잴 수 있다
+      const bb = tt.getBBox(), w = bb.width + 16, h = bb.height + 10;
+      tt.setAttribute('y', 5 - bb.y); bg.setAttribute('width', w); bg.setAttribute('height', h);
+      let x = clamp(v.ax - w / 2, 2, VBW - w - 2), y = v.ay - h - 8;
+      if (y < 2) y = Math.min(H - h - 2, v.ay + 12);
+      bubble.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+      if (say) UI.say(v.lines.join(', '));
+    }
+    const pos = e => { const r = g.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * VBW, (e.clientY - r.top) / r.height * H]; };
+    const hover = e => { const [x, y] = pos(e); show(o.at(x, y)); };
+    hit.addEventListener('pointermove', hover);
+    hit.addEventListener('pointerdown', e => { ptr = true; setTimeout(() => { ptr = false; }); hover(e); });
+    hit.addEventListener('click', hover);
+    hit.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') hide(); });
+    hit.addEventListener('focus', () => { if (!ptr) show(last >= 0 ? last : o.n - 1, true); });
+    hit.addEventListener('blur', hide);
+    hit.addEventListener('keydown', e => {
+      const cur = last >= 0 ? last : o.n - 1, step = o.keys === 'xy' ? o.cols : 0;
+      let j = e.key === 'ArrowLeft' ? cur - 1 : e.key === 'ArrowRight' ? cur + 1 : e.key === 'Home' ? 0 : e.key === 'End' ? o.n - 1
+        : e.key === 'ArrowUp' && step ? cur - step : e.key === 'ArrowDown' && step ? cur + step : null;
+      if (e.key === 'Escape') { hide(); return; }
+      if (j == null) return;
+      e.preventDefault(); show(clamp(j, 0, o.n - 1), true);
+    });
+  }
 
   // ---- 표로 보기 ----
   function table(head, rows) {
@@ -53,6 +132,11 @@
       el('thead', null, el('tr', null, ...head.map(h => el('th', null, h)))),
       el('tbody', null, ...rows.map(r => el('tr', null, ...r.map(c => el('td', null, c == null ? mk() : c)))))));
   }
+  // 범례 칸이 그래프에 실제로 있는지
+  const used = (svgEl, k) => !svgEl.querySelector ? true : !!svgEl.querySelector(
+    k === 'f1' || k === 'bar' ? '.gr-bar, .gr-f1' : /^f[2-5o]$/.test(k) ? '.gr-' + k : /^s[1-5o]$/.test(k) ? '.gr-' + k :
+    k === 'hollow' ? '.gr-dot.hollow' : k === 'lost' ? '.gr-lost' : k === 'empty' ? '.gr-cell' : k === 'box' ? '.gr-box' :
+    k === 'med' ? '.gr-med' : k === 'avg' ? '.gr-dot' : k === 'ramp' ? '[class*="gr-fq"]' : '.gr-hmask, .gr-band');
   // 그래프 하나를 감싼다: 그래프(role=img, 요약 aria-label)와 같은 데이터를 표로 바꿔 보는 단추
   function figure(o) {
     const box = el('div', { class: 'gr-fig' });
@@ -66,9 +150,10 @@
     } }, '표로 보기') : null;
     box.append(g);
     if (tbl) box.append(tbl);
-    // 가림 범례는 그래프에 가려진 칸이 실제로 있을 때만 보인다(038 이후 서버는 가리지 않는다)
-    const lg = o.legend && o.legend.filter(([k]) => k !== 'mask' || (o.svg.querySelector && o.svg.querySelector('.gr-hmask, .gr-band')));
-    if (lg && lg.length) box.append(legend(lg));
+    // 범례 칸은 그래프에 실제로 있을 때만 그린다(가림 칸은 038 이후 서버가 가리지 않으면 없다). 계열이 하나만 남으면 범례 줄을 그리지 않는다(카드 제목과 말풍선이 이름을 말해 준다)
+    const lg = o.legend && o.legend.filter(([k]) => used(o.svg, k));
+    const SERIES = /^(f[1-5o]|s[1-5o]|bar)$/;
+    if (lg && lg.length && !(lg.filter(([k]) => SERIES.test(k)).length === 1 && lg.every(([k]) => SERIES.test(k)))) box.append(legend(lg));
     if (btn) box.append(el('div', { class: 'gr-tools' }, btn));
     return box;
   }
@@ -96,12 +181,12 @@
   //      숫자 라벨: 마지막 값과 가장 큰 값(점이 8개 이하면 모두) ----
   function line(xs, series, o) {
     o = o || {};
-    const H = 190, L = 40, T = 24, B = 24, R = series.length > 1 ? 64 : 16, pw = W - L - R, ph = H - T - B, n = xs.length;
+    const H = o.h || (xs.length <= 8 ? 130 : 150), L = 40, T = 18, B = 24, R = series.length > 1 ? 64 : 16, pw = W - L - R, ph = H - T - B, n = xs.length;
     const all = series.flatMap(s => s.values).filter(v => v != null);
-    const top = o.top || niceMax(Math.max(0, ...all)), fmt = o.fmt || fmtN, part = o.partial || [];
+    const scale = niceScale(Math.max(0, ...all), ph < 90 ? 3 : 5), top = scale.top, fmt = o.fmt || fmtN, part = o.partial || [], unit = o.unit || '';
     const X = i => L + (n === 1 ? pw / 2 : i * pw / (n - 1)), Y = v => T + ph - v / top * ph, base = T + ph;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '꺾은선 그래프' });
-    gridY(g, L, W - R, T, ph, top, fmt);
+    gridY(g, L, W - R, T, ph, scale, fmt);
     const bw = n === 1 ? 24 : pw / (n - 1);
     for (let i = 0; i < n; i++) {
       if (series.every(s => s.values[i] == null)) {
@@ -134,11 +219,23 @@
         const alone = (i === 0 || s.values[i - 1] == null) && (i === n - 1 || s.values[i + 1] == null);
         if (part[i]) g.append(svg('circle', { class: 'gr-dot hollow ' + cls, cx: X(i), cy: Y(v), r: 4 }));
         else if (alone || n <= 31) g.append(svg('circle', { class: 'gr-dot ' + fcls, cx: X(i), cy: Y(v), r: alone ? 3.5 : 2.5 }));
-        const lab = series.length === 1 && (n <= 8 || i === last || i === peak);
+        const lab = v > 0 && series.length === 1 && (n <= 8 || i === last || i === peak);
         if (lab) g.append(txt(X(i), Math.max(T - 2, Y(v) - 8), fmt(v), 'gr-val', anchorAt(X(i), L, W - R)));
         if (part[i] && series.length === 1) g.append(txt(X(i), Y(v) + 17, '진행 중', 'gr-txt', anchorAt(X(i), L, W - R)));
       });
       if (series.length > 1 && last >= 0) g.append(txt(Math.min(W - 2, X(last) + 5), Y(s.values[last]) + 3, s.name, 'gr-txt'));
+    });
+    tip(g, H, {
+      rect: { x: L, y: T, w: pw, h: ph }, n,
+      at: x => n === 1 ? 0 : clamp(Math.round((x - L) / pw * (n - 1)), 0, n - 1),
+      view: i => {
+        const vs = series.map(s => s.values[i]), seen = vs.filter(v => v != null);
+        const lines = [(o.full && o.full[i]) || xs[i]].concat(series.map((s, si) => s.name + ' ' + (vs[si] == null ? mk() : fmt(vs[si]) + unit)));
+        if (part[i]) lines.push('진행 중');
+        const x0 = clamp(X(i) - bw / 2, L, W - R), x1 = clamp(X(i) + bw / 2, L, W - R);
+        return { ax: X(i), ay: seen.length ? Y(Math.max(...seen)) : base, lines, hl: { x: x0, y: T, w: Math.max(1, x1 - x0), h: ph },
+          guide: seen.length ? { x: X(i), y1: T, y2: base } : null, dots: series.map((s, si) => vs[si] == null ? null : { x: X(i), y: Y(vs[si]), cls: 'gr-f' + (si + 1) }).filter(Boolean) };
+      }
     });
     return g;
   }
@@ -146,11 +243,11 @@
   // ---- 세로 막대(기간별 개수): cols [{label, v|null, text}]. 0에서 시작. null이면 점선 빈 칸. o.h 높이 ----
   function barsV(cols, o) {
     o = o || {};
-    const H = o.h || 170, L = 40, T = 18, B = 24, pw = W - L - 8, ph = H - T - B, n = cols.length, fmt = o.fmt || fmtN;
-    const top = niceMax(Math.max(0, ...cols.map(c => c.v).filter(v => v != null)));
-    const slot = n ? pw / n : pw, bw = Math.max(2, slot * .7), showVal = n <= 16;
+    const n = cols.length, H = o.h || (n <= 8 ? 120 : 140), L = 40, T = 14, B = 24, pw = W - L - 8, ph = H - T - B, fmt = o.fmt || fmtN, unit = o.unit || '';
+    const scale = niceScale(Math.max(0, ...cols.map(c => c.v).filter(v => v != null)), ph < 90 ? 3 : 5), top = scale.top;
+    const slot = n ? pw / n : pw, bw = Math.min(maxbw(), Math.max(2, slot * .7)), showVal = slot >= 20 && n <= 16;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '막대 그래프' });
-    gridY(g, L, W - 8, T, ph, top, fmt);
+    gridY(g, L, W - 8, T, ph, scale, fmt);
     const step = Math.max(1, Math.ceil(n / 8));
     let peak = -1; cols.forEach((c, i) => { if (c.v != null && (peak < 0 || c.v > cols[peak].v)) peak = i; });
     cols.forEach((c, i) => {
@@ -158,12 +255,20 @@
       if (c.v == null) {
         if (masking) g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: T + ph - 34, width: Math.max(2, bw - 2), height: 34 }));
         if (masking && n <= 16) g.append(txt(cx, T + ph - 18, '가림', 'gr-txt', 'middle'));
-      } else {
+      } else if (c.v > 0) {
         const h = c.v / top * ph;
-        g.append(svg('rect', { class: 'gr-bar', x, y: T + ph - h, width: bw, height: Math.max(h, c.v > 0 ? 1 : 0), rx: Math.min(4, bw / 2) }));
+        g.append(svg('rect', { class: 'gr-bar', x, y: T + ph - h, width: bw, height: Math.max(h, 1), rx: Math.min(4, bw / 2) }));
         if (showVal || i === peak) g.append(txt(cx, T + ph - h - 4, c.text || fmt(c.v), 'gr-val', 'middle'));
       }
       if (i % step === 0) g.append(txt(cx, H - 8, c.label, 'gr-txt', 'middle'));
+    });
+    tip(g, H, {
+      rect: { x: L, y: T, w: pw, h: ph }, n, at: x => clamp(Math.floor((x - L) / slot), 0, n - 1),
+      view: i => {
+        const c = cols[i];
+        return { ax: L + slot * i + slot / 2, ay: c.v > 0 ? T + ph - c.v / top * ph : T + ph, hl: { x: L + slot * i, y: T, w: slot, h: ph },
+          lines: [c.full || c.label, c.v == null ? mk() : (c.text || fmt(c.v) + unit)] };
+      }
     });
     return g;
   }
@@ -172,12 +277,12 @@
   //      한 계열이라도 가려졌으면 그 조각은 점선 칸으로 얹고 합계 숫자는 적지 않는다 ----
   function barsStack(cols, names, o) {
     o = o || {};
-    const H = 190, L = 40, T = 22, B = 24, pw = W - L - 8, ph = H - T - B, n = cols.length, fmt = o.fmt || fmtN, MH = 16;
+    const n = cols.length, H = o.h || (n <= 8 ? 130 : 150), L = 40, T = 22, B = 24, pw = W - L - 8, ph = H - T - B, fmt = o.fmt || fmtN, MH = 16, unit = o.unit || '';
     const sums = cols.map(c => c.vs.reduce((a, v) => a + (v || 0), 0));
-    const top = niceMax(Math.max(0, ...sums));
-    const slot = n ? pw / n : pw, bw = Math.max(3, slot * .7);
+    const scale = niceScale(Math.max(0, ...sums), ph < 90 ? 3 : 5), top = scale.top;
+    const slot = n ? pw / n : pw, bw = Math.min(maxbw(), Math.max(3, slot * .7));
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '누적 막대 그래프' });
-    gridY(g, L, W - 8, T, ph, top, fmt);
+    gridY(g, L, W - 8, T, ph, scale, fmt);
     const step = Math.max(1, Math.ceil(n / 8));
     cols.forEach((c, i) => {
       const cx = L + slot * i + slot / 2, x = cx - bw / 2; let y = T + ph; const masked = c.vs.some(v => v == null);
@@ -189,8 +294,17 @@
       if (masked) {
         if (masking) g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: y - MH, width: Math.max(2, bw - 2), height: MH - 2 }));
         if (masking && slot >= 22) g.append(txt(cx, y - MH - 3, '가림', 'gr-txt', 'middle'));
-      } else if (n <= 12 || i === n - 1) g.append(txt(cx, y - 4, fmt(sums[i]), 'gr-val', 'middle'));
+      } else if (sums[i] > 0 && (n <= 12 || i === n - 1)) g.append(txt(cx, y - 4, fmt(sums[i]), 'gr-val', 'middle'));
       if (i % step === 0) g.append(txt(cx, H - 8, c.label, 'gr-txt', 'middle'));
+    });
+    tip(g, H, {
+      rect: { x: L, y: T, w: pw, h: ph }, n, at: x => clamp(Math.floor((x - L) / slot), 0, n - 1),
+      view: i => {
+        const c = cols[i], masked = c.vs.some(v => v == null);
+        const lines = [c.full || c.label].concat(names.map((nm, j) => nm + ' ' + (c.vs[j] == null ? mk() : fmt(c.vs[j]) + unit)));
+        if (!masked) lines.push('합계 ' + fmt(sums[i]) + unit);
+        return { ax: L + slot * i + slot / 2, ay: T + ph - sums[i] / top * ph, hl: { x: L + slot * i, y: T, w: slot, h: ph }, lines };
+      }
     });
     return g;
   }
@@ -199,11 +313,11 @@
   //      한 계열이라도 가려졌으면 그 줄은 점선 칸 + "5명 미만" ----
   function stack100(rows, names, o) {
     o = o || {};
-    const RH = 48, BW = W - 8, H = Math.max(RH, rows.length * RH);
+    const RH = 54, BW = W - 8, H = Math.max(RH, rows.length * RH);
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '구성 비율 누적 막대 그래프' });
     rows.forEach((r, i) => {
       const y = i * RH, sum = r.vs.reduce((a, v) => a + (v || 0), 0), masked = r.vs.some(v => v == null) || !(sum > 0);
-      g.append(txt(0, y + 11, r.label, 'gr-lab'));
+      g.append(txt(0, y + 11, r.label, 'gr-txt'));
       if (masked) {
         if (masking) g.append(svg('rect', { class: 'gr-hmask', x: 0, y: y + 16, width: 56, height: 14 }), txt(62, y + 27, MASK + '이라 가렸어요', 'gr-txt'));
         return;
@@ -215,7 +329,7 @@
         x += w;
         if (v > 0) parts.push(names[j] + ' ' + Math.round(v / sum * 100) + '%');
       });
-      g.append(txt(0, y + 43, parts.join(' · '), 'gr-txt'));
+      g.append(txt(0, y + 46, parts.join(' · '), 'gr-txt'));
     });
     return g;
   }
@@ -223,7 +337,7 @@
   // ---- 가로 막대(정렬된 비교): rows [{label, v|null, text}] 줄마다 이름 위, 막대 아래. null이면 점선 + "5명 미만" ----
   function barsH(rows, o) {
     o = o || {};
-    const RH = 36, BX = 0, BW = W - 110, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
+    const RH = 32, BX = 0, BW = W - 110, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
     const top = Math.max(o.max || 0, ...rows.map(r => r.v).filter(v => v != null)) || 1;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '가로 막대 그래프' });
     rows.forEach((r, i) => {
@@ -231,6 +345,8 @@
       g.append(txt(BX, y + 11, r.label, 'gr-lab'));
       if (r.v == null) {
         if (masking) g.append(svg('rect', { class: 'gr-hmask', x: BX, y: y + 16, width: 56, height: 12 }), txt(BX + 62, y + 26, r.text || MASK + '이라 가렸어요', 'gr-txt'));
+      } else if (r.v === 0) {
+        g.append(txt(BX + 6, y + 26, r.text || fmt(0), 'gr-txt'));   // 0은 막대 없이 연한 글로
       } else {
         const w = r.v / top * BW;
         g.append(svg('rect', { class: 'gr-bar', x: BX, y: y + 16, width: Math.max(w, r.v > 0 ? 1 : 0), height: 12, rx: 4 }), txt(BX + w + 6, y + 26, r.text || fmt(r.v), 'gr-val'));
@@ -298,7 +414,7 @@
   //      값 글은 막대 아래에 바로 적는다. 가려진 줄(med==null)은 점선 칸 ----
   function boxplot(rows, o) {
     o = o || {};
-    const fmt = o.fmt || fmtN, RH = 62, AX = 22, L = 8, R = 16, pw = W - L - R, H = rows.length * RH + AX;
+    const fmt = o.fmt || fmtN, RH = 58, AX = 22, L = 8, R = 16, pw = W - L - R, H = rows.length * RH + AX;
     const mx = niceMax(Math.max(1, ...rows.map(r => Math.max(r.p75 || 0, r.avg || 0)))), X = v => L + v / mx * pw;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '상자 그림' });
     [0, .5, 1].forEach(f => g.append(svg('line', { class: 'gr-grid', x1: X(mx * f), y1: 0, x2: X(mx * f), y2: rows.length * RH }),
@@ -310,7 +426,7 @@
       g.append(svg('rect', { class: 'gr-box gr-f1 gr-s1', x: X(r.p25), y: y + 20, width: Math.max(2, X(r.p75) - X(r.p25)), height: 18, rx: 3 }),
         svg('line', { class: 'gr-med', x1: X(r.med), y1: y + 17, x2: X(r.med), y2: y + 41 }));
       if (r.avg != null) g.append(svg('circle', { class: 'gr-dot gr-f1', cx: X(r.avg), cy: y + 29, r: 4.5 }));
-      g.append(txt(L, y + 54, '중앙값 ' + fmt(r.med) + ' · 25~75% ' + fmt(r.p25) + '~' + fmt(r.p75) + (r.avg != null ? ' · 평균 ' + fmt(r.avg) : ''), 'gr-txt'));
+      g.append(txt(L, y + 52, '중앙값 ' + fmt(r.med) + ' · 25~75% ' + fmt(r.p25) + '~' + fmt(r.p75) + (r.avg != null ? ' · 평균 ' + fmt(r.avg) : ''), 'gr-txt'));
     });
     return g;
   }
@@ -319,11 +435,12 @@
   const lvl = r => 'q' + (r < .2 ? 1 : r < .4 ? 2 : r < .6 ? 3 : r < .8 ? 4 : 5);
 
   // ---- 시간대 지도(히트맵): cells [{dow(0=일), hour, events:{n,small}}] 사건이 있는 칸만 온다 ----
-  function heat(cells) {
+  function heat(cells, o) {
+    o = o || {};
     const days = ['일', '월', '화', '수', '목', '금', '토'], L = 20, T = 14, cw = Math.floor((W - 20 - 4) / 24), ch = 16, H = T + 7 * ch + 4;
     const map = new Map(cells.map(c => [c.dow + '-' + c.hour, c]));
     const vals = cells.map(c => pick(c.events, 'n')).filter(v => v != null), max = Math.max(1, ...vals);
-    const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': '요일과 시간대 지도' });
+    const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '요일과 시간대 지도' });
     [0, 6, 12, 18, 23].forEach(h => g.append(txt(L + h * cw + cw / 2, 9, String(h), 'gr-txt', 'middle')));
     days.forEach((d, r) => {
       g.append(txt(2, T + r * ch + 11, d, 'gr-txt'));
@@ -337,13 +454,22 @@
         }
       }
     });
+    tip(g, H, {
+      rect: { x: L, y: T, w: 24 * cw, h: 7 * ch }, n: 168, keys: 'xy', cols: 24,
+      at: (x, y) => { const col = Math.floor((x - L) / cw), row = Math.floor((y - T) / ch); return col < 0 || col > 23 || row < 0 || row > 6 ? -1 : row * 24 + col; },
+      view: i => {
+        const row = Math.floor(i / 24), col = i % 24, c = map.get(row + '-' + col), v = c ? pick(c.events, 'n') : null;
+        return { ax: L + col * cw + cw / 2, ay: T + row * ch, hl: { x: L + col * cw, y: T + row * ch, w: cw, h: ch },
+          lines: [days[row] + '요일 ' + col + '시', !c ? '기록 없음' : v == null ? mk() : '사건 ' + fmtN(v) + '번'] };
+      }
+    });
     return g;
   }
 
   // ---- 깔때기: steps [{label, users:{n,small}, from_prev, from_first}]. 단계 사이에 빠진 몫은 점선 주의색 칸 + "-32%"로 보인다.
   //      가려진 단계와 그 뒤는 가림 ----
   function funnel(steps) {
-    const RH = 52, BW = W - 150, H = Math.max(RH, steps.length * RH);
+    const RH = 58, BW = W - 150, H = Math.max(RH, steps.length * RH);
     const first = pick(steps[0] && steps[0].users, 'n');
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': '단계별 흐름 깔때기' });
     let masked = false, prevV = null;
@@ -391,5 +517,5 @@
       t.note ? el('dd', { class: 'note' }, t.note) : null)));
   }
 
-  window.Charts = { line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
+  window.Charts = { setWidth, niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
 })();

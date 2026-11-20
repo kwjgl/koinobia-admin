@@ -3,8 +3,9 @@
    서버 글은 모두 textContent로만 넣는다(UI.el). */
 (function () {
   const { el, toast } = UI;
+  const CODE_RULE = '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.';
   const OPEN = { off: '지금은 신청을 받지 않아요', admins: '지금은 앱 관리자만 신청을 받아요', on: '지금 신청을 받고 있어요' };
-  const GROUPS = [['대기', '기다림'], ['만듦', '만듦 (신청한 분이 앱에서 시작하기를 기다리는 중)'], ['거절', '거절']];
+  const GROUPS = [['대기', '기다림'], ['만듦', '만듦', '신청한 분이 앱에서 시작하기를 기다리는 중'], ['거절', '거절']];
   const PHONE = /^[0-9+() -]{9,20}$/;
 
   // 코드 정규화: 대문자로 바꾸고 영문 대문자·숫자·한글만 남긴다(서버와 같은 규칙, 마지막 판단은 서버)
@@ -49,16 +50,16 @@
       const name = el('input', { class: 'field', type: 'text', maxlength: '40', value: it.name || '', autocomplete: 'off' });
       const code = el('input', { class: 'field', type: 'text', maxlength: '40', autocomplete: 'off', autocapitalize: 'characters', placeholder: '예: SAMPLE1' });
       const dept = el('input', { class: 'field', type: 'text', maxlength: '12', value: '첫 부서', autocomplete: 'off' });
-      const prev = el('p', { class: 'hint' }, '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.');
+      const prev = el('p', { class: 'hint', hidden: true });
       code.addEventListener('input', () => {
         const n = norm(code.value);
-        prev.textContent = n ? '이렇게 저장돼요: ' + n : '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.';
+        prev.textContent = n ? '이렇게 저장돼요: ' + n : ''; prev.hidden = !n;
       });
       const actions = el('div', { class: 'actions' });
       const showErr = m => { err.textContent = m; err.hidden = !m; };
       const form = el('div', { class: 'aa-form' },
         el('label', { class: 'f' }, '교회 이름'), name,
-        el('label', { class: 'f' }, '코드 (필수)'), code, prev,
+        UI.withInfo(el('label', { class: 'f' }, '코드 (필수)'), CODE_RULE, { label: '코드 도움말' }), code, prev,
         el('label', { class: 'f' }, '첫 부서 이름'), dept,
         err, actions);
 
@@ -150,8 +151,8 @@
       if (it.status === '만듦') {
         const c = st.made[it.id];
         kids.push(el('div', { class: 'aa-link' },
-          el('p', { class: 'msg' }, c ? '교회를 만들었어요. 코드: ' + c : '교회를 만들었어요.'),
-          el('p', { class: 'hint' }, '신청한 분이 코이데 앱에서 첫 관리자로 시작하기를 누르면 돼요. 링크를 보낼 필요가 없어요.')));
+          UI.withInfo(el('p', { class: 'msg' }, c ? '교회를 만들었어요. 코드: ' + c : '교회를 만들었어요.'),
+            '신청한 분이 코이데 앱에서 첫 관리자로 시작하기를 누르면 돼요. 링크를 보낼 필요가 없어요.', { label: '다음에 할 일 도움말' })));
       }
       if (it.status === '대기') {
         if (kind === 'make') kids.push(makeForm(it));
@@ -167,11 +168,11 @@
       const d = st.data, items = d.items || [];
       const kids = [el('h1', null, '교회 신청'),
         el('p', { class: 'aa-sum' }, OPEN[d.open] || '신청 상태를 알 수 없어요', ' (바꾸는 곳은 ', el('a', { class: 'aa-a', href: '#/church' }, '교회 메뉴'), '예요)')];
-      if (!items.length) { kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, '신청이 없어요.'))); return kids; }
-      GROUPS.forEach(([status, label]) => {
+      if (!items.length) { kids.push(el('div', { class: 'card' }, el('p', { class: 'msg us-empty' }, '신청이 없어요.'))); return kids; }
+      GROUPS.forEach(([status, label, tip]) => {
         const list = items.filter(i => i.status === status);
         if (!list.length) return;
-        kids.push(el('p', { class: 'eyebrow ap-group' }, label + ' ' + list.length + '건'));
+        kids.push(UI.withInfo(el('p', { class: 'eyebrow ap-group' }, label + ' ' + list.length + '건'), tip, { label: label + ' 도움말' }));
         kids.push(el('div', { class: 'aa-grid' }, ...list.map(card)));
       });
       return kids;

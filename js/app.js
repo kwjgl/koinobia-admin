@@ -53,11 +53,11 @@
     }));
   }
   function footer() {
+    const prov = S.sess && S.sess.provider || '';
+    const first = prov ? UI.withInfo(el('span', null, '로그인 방법 ' + prov), '화면 버전 ' + (CFG.VERSION || ''), { up: true, label: '화면 버전 보기' }) : el('span', null, '로그인 방법');
     return el('footer', { class: 'aa-foot' },
-      el('p', null, '로그인 방법 ' + (S.sess && S.sess.provider || '')),
-      el('p', null, '화면 ' + (CFG.VERSION || '')),
-      el('p', null, '공용 컴퓨터에서는 다 쓰고 로그아웃해 주세요.'),
-      el('button', { class: 'link', type: 'button', onclick: logout }, '로그아웃'));
+      el('div', { class: 'aa-foot-row' }, first, el('button', { class: 'btn ghost', type: 'button', onclick: logout }, '로그아웃')),
+      el('p', { class: 'hint' }, '공용 컴퓨터에서는 다 쓰고 로그아웃해 주세요.'));
   }
   function soon(name) {
     return el('section', null, el('h1', null, name), el('div', { class: 'card' }, el('p', { class: 'msg' }, '준비 중이에요.')));

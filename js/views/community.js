@@ -101,8 +101,7 @@
       };
       key.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
       return el('div', { class: 'card aa-form' },
-        el('label', { class: 'f' }, '직접 찾기'), key,
-        el('p', { class: 'hint' }, '입력한 값은 저장하지 않아요. 초대 토큰은 비밀이라 글자를 가려요.'),
+        UI.withInfo(el('label', { class: 'f' }, '직접 찾기'), '입력한 값은 저장하지 않아요. 초대 토큰은 비밀이라 글자를 가려요.'), key,
         err,
         el('div', { class: 'actions' }, el('button', { class: 'btn small', type: 'button', onclick: go }, '찾기')),
         st.found ? detail(st.found, async () => { await refresh(); }) : null);
@@ -110,7 +109,7 @@
 
     function build() {
       const h = st.health || {}, bs = h.by_status || {}, items = (st.reports && st.reports.items) || [];
-      const kids = [el('h1', null, '공동체'),
+      const kids = [UI.withInfo(el('h1', null, '공동체'), '신고 글에는 이름이 적혀 있을 수 있어서 복사나 저장 기능을 두지 않았어요.'),
         el('p', { class: 'eyebrow' }, '지금 상태'),
         el('div', { class: 'card' }, el('dl', { class: 'aa-stats three' },
           stat('열림', bs['열림'], o => o.n + '곳', MASK_PLACE), stat('끝맺음', bs['끝맺음'], o => o.n + '곳', MASK_PLACE), stat('닫음', bs['닫음'], o => o.n + '곳', MASK_PLACE),
@@ -119,7 +118,6 @@
         el('p', { class: 'eyebrow' }, '신고가 들어온 공동체')];
       if (!items.length) kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, '새 신고가 없어요.')));
       else kids.push(el('div', { class: 'aa-grid' }, ...items.map(reportCard)));
-      kids.push(el('p', { class: 'hint' }, '신고 글에는 이름이 적혀 있을 수 있어서 복사나 저장 기능을 두지 않았어요.'));
       kids.push(finder());
       return kids;
     }
