@@ -27,7 +27,7 @@
     if (m) return fail('forbidden', m[1]);
     m = /^(bad|busy): ([\s\S]*)$/.exec(msg);
     if (m) return fail(m[1], m[2]);
-    if (sql === 'PGRST202' || status === 404) return fail('sql', '서버 SQL이 아직 없어요. docs/setup.md의 안내대로 036(또는 037)을 넣어 주세요.');
+    if (sql === 'PGRST202' || status === 404) return fail('sql', '서버 SQL이 아직 없어요. docs/setup.md의 안내대로 036·037·040 중 필요한 번호를 넣어 주세요.');
     if (sql === '57014') return fail('slow', '서버가 시간 안에 답하지 못했어요. 기간을 줄여 보세요.');
     if (status === 0 || /fetch|network|abort/i.test(msg + String(err && err.name || ''))) return fail('net', '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.');
     return fail('bad', '서버가 받지 못했어요. 잠시 뒤 다시 해 주세요.');
@@ -165,7 +165,10 @@
       stickiness: a => rpc('admin_usage_stickiness', { p_app: a.app || null, p_months: a.months || 6 }),
       frequency: a => rpc('admin_usage_frequency', { p_app: a.app || null, p_days: a.days || 30 }),
       duration: a => rpc('admin_usage_duration', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
-      newReturning: a => rpc('admin_usage_new_returning', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'week' })
+      newReturning: a => rpc('admin_usage_new_returning', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'week' }),
+      // 핵심 지표판·오늘 이상 신호(040). 서버 SQL 040이 없으면 code:'sql'로 실패한다
+      kpi: a => rpc('admin_usage_kpi', { p_app: a.app || null, p_days: a.days || 7 }),
+      alerts: () => rpc('admin_usage_alerts')
     }
   };
   window.api = api;

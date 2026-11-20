@@ -533,6 +533,21 @@
         ...r.rates.map(x => x == null ? el('td', { class: masking ? 'mask' : null }, masking ? '가림' : '—') : el('td', { class: lvl(x) }, pct(x))))))));
   }
 
+  // ---- 스파크라인(작은 꺾은선): points [number|null](오래된 것부터), o.label 요약 글. 끝점에 점. 값이 없으면 점선 한 줄 ----
+  function spark(points, o) {
+    o = o || {};
+    const w = 100, h = 28, p = 3, vals = points.filter(v => v != null), n = points.length;
+    const g = svg('svg', { class: 'gr-spark', viewBox: '0 0 ' + w + ' ' + h, role: 'img', 'aria-label': o.label || '추이' });
+    if (!vals.length) { g.append(svg('line', { class: 'gr-sgrid', x1: p, x2: w - p, y1: h / 2, y2: h / 2 })); return g; }
+    const hi = Math.max(...vals, 1), X = i => n === 1 ? w / 2 : p + i * (w - 2 * p) / (n - 1), Y = v => h - p - v / hi * (h - 2 * p);
+    g.append(svg('line', { class: 'gr-sgrid', x1: p, x2: w - p, y1: h - p, y2: h - p }));
+    let d = '', pen = false, last = -1;
+    points.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1); pen = true; last = i; });
+    g.append(svg('path', { class: 'gr-line gr-s1 gr-sline', d }));
+    if (last >= 0) g.append(svg('circle', { class: 'gr-dot gr-f1 gr-sdot', cx: X(last), cy: Y(points[last]), r: 2.6 }));
+    return g;
+  }
+
   // ---- 숫자 타일: items [{label, value(숫자·글자·null), note}] null이면 "5명 미만" ----
   function tiles(items) {
     return el('dl', { class: 'gr-tiles' }, ...items.map(t => el('div', null,
@@ -541,5 +556,5 @@
       t.note ? el('dd', { class: 'note' }, t.note) : null)));
   }
 
-  window.Charts = { setWidth, niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
+  window.Charts = { spark, setWidth, niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
 })();
