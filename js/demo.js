@@ -105,18 +105,22 @@
   const GR = { day: 1, week: 2.4, month: 5 };
   const EV = [
     ['koide', 'note.open', '노트 열기', 'screen'], ['koide', 'note.item-add', '기도제목 추가', 'action'], ['koide', 'note.pray-start', '기도하기 시작', 'action'],
-    ['koide', 'note.pray-done', '기도하기 마침', 'action'], ['koide', 'note.share', '나누기 열기', 'action'], ['koide', 'note.settings', '설정 열기', 'screen'], ['koide', 'note.error-save', '저장 오류', 'error'],
+    ['koide', 'note.prayed', '기도했어요 누름(노트)', 'action'], ['koide', 'note.pray-done', '기도하기 마침', 'action'], ['koide', 'note.share', '나누기 열기', 'action'], ['koide', 'note.settings', '설정 열기', 'screen'], ['koide', 'note.error-save', '저장 오류', 'error'],
     ['koide', 'church.open', '교회 열기', 'screen'], ['koide', 'church.step-login', '교회 로그인 단계', 'screen'], ['koide', 'church.step-consent', '교회 동의 단계', 'screen'], ['koide', 'church.step-app', '교회 앱 안내 단계', 'screen'],
-    ['koide', 'church.item-save', '교회 기도제목 저장', 'action'], ['koide', 'church.pray-start', '교회 기도하기 시작', 'action'], ['koide', 'church.pray-done', '교회 기도하기 마침', 'action'], ['koide', 'church.meet-done', '모임 모드 마침', 'action'], ['koide', 'church.error-sync', '교회 동기화 오류', 'error'],
-    ['koide', 'community.list', '공동체 목록', 'screen'], ['koide', 'community.create', '공동체 만들기', 'action'], ['koide', 'community.invite-create', '초대 만들기', 'action'], ['koide', 'community.first-topic', '첫 기도제목 올리기', 'action'], ['koide', 'community.error-join', '공동체 들어가기 오류', 'error'],
-    ['didako', 'note.open', '노트 열기', 'screen'], ['didako', 'note.answer', '오늘의 질문에 대답', 'action'], ['didako', 'cm.open', '공동체 열기', 'screen'], ['didako', 'cm.keep-sentence', '오늘 남길 한 문장', 'action'], ['didako', 'cm.reflect', '돌아보기 남기기', 'action'],
+    ['koide', 'church.item-save', '교회 기도제목 저장', 'action'], ['koide', 'church.prayed', '기도했어요 누름(교회)', 'action'], ['koide', 'church.pray-start', '교회 기도하기 시작', 'action'], ['koide', 'church.pray-done', '교회 기도하기 마침', 'action'], ['koide', 'church.meet-done', '모임 모드 마침', 'action'], ['koide', 'church.error-sync', '교회 동기화 오류', 'error'],
+    ['koide', 'community.list', '공동체 목록', 'screen'], ['koide', 'community.prayed', '기도했어요 누름(공동체)', 'action'], ['koide', 'community.pray-done', '공동체 기도하기 마침', 'action'], ['koide', 'community.create', '공동체 만들기', 'action'], ['koide', 'community.invite-create', '초대 만들기', 'action'], ['koide', 'community.first-topic', '첫 기도제목 올리기', 'action'], ['koide', 'community.error-join', '공동체 들어가기 오류', 'error'],
+    ['didako', 'note.open', '노트 열기', 'screen'], ['didako', 'note.answer', '오늘의 질문에 대답', 'action'], ['didako', 'note.walk-done', '질문으로 묵상하기 마침', 'action'], ['didako', 'note.keep', '남기기', 'action'],
+    ['didako', 'cm.first-before', '이번 주의 질문 펴 보기(전)', 'action'], ['didako', 'cm.first-after', '이번 주의 질문 펴 보기(후)', 'action'], ['didako', 'cm.quiz-done', '오늘의 말씀 퀴즈 풀기', 'action'], ['didako', 'cm.share-done', '나눔하기 마침', 'action'],
+    ['didako', 'church.first-before', '교회 이번 주의 질문 펴 보기(전)', 'action'], ['didako', 'church.first-after', '교회 이번 주의 질문 펴 보기(후)', 'action'], ['didako', 'church.quiz-done', '교회 말씀 퀴즈 풀기', 'action'], ['didako', 'church.share-done', '교회 나눔하기 마침', 'action'], ['didako', 'cm.open', '공동체 열기', 'screen'], ['didako', 'cm.keep-sentence', '오늘 남길 한 문장', 'action'], ['didako', 'cm.reflect', '돌아보기 남기기', 'action'],
     ['didako', 'church.open', '교회 열기', 'screen'], ['didako', 'church.keep-sentence', '교회 오늘 남길 한 문장', 'action'], ['didako', 'church.reflect', '교회 돌아보기 남기기', 'action'],
     ['didako', 'didako.open', '디다코 열기', 'screen'], ['didako', 'didako.item-add', '기록 추가', 'action'], ['didako', 'didako.error-load', '불러오기 오류', 'error']
   ];
   // ---- 연구 탭(041). ?demo&no041 이면 함수가 없는 모양. 로그 추가는 메모리에만 반영한다 ----
   const TRIG = { 'note.open': '노트 화면이 열릴 때', 'note.pray-done': '기도하기 끝 화면에서 마침을 누를 때', 'church.open': '교회 화면이 열릴 때', 'cm.keep-sentence': '오늘 남길 한 문장을 저장할 때' };
-  const CORE = { 'koide:note.pray-done': ['note', 'finish'], 'koide:note.item-add': ['note', 'keep'], 'koide:church.pray-done': ['church', 'finish'], 'koide:church.item-save': ['church', 'keep'], 'koide:community.first-topic': ['community', 'keep'],
-    'didako:note.answer': ['note', 'answer'], 'didako:cm.keep-sentence': ['community', 'keep'], 'didako:cm.reflect': ['community', 'reflect'], 'didako:church.keep-sentence': ['church', 'keep'], 'didako:church.reflect': ['church', 'reflect'] };
+  const CORE = { 'koide:note.prayed': ['note', 'pray'], 'koide:note.pray-done': ['note', 'finish'], 'koide:community.prayed': ['community', 'pray'], 'koide:community.pray-done': ['community', 'finish'], 'koide:church.prayed': ['church', 'pray'], 'koide:church.pray-done': ['church', 'finish'],
+    'didako:note.answer': ['note', 'answer'], 'didako:note.walk-done': ['note', 'meditate'], 'didako:note.keep': ['note', 'keep'],
+    'didako:cm.first-before': ['community', 'meditate'], 'didako:cm.first-after': ['community', 'meditate'], 'didako:cm.quiz-done': ['community', 'quiz'], 'didako:cm.share-done': ['community', 'share'],
+    'didako:church.first-before': ['church', 'meditate'], 'didako:church.first-after': ['church', 'meditate'], 'didako:church.quiz-done': ['church', 'quiz'], 'didako:church.share-done': ['church', 'share'] };
   const rcol = (key, label, type, def, desc) => ({ key, label, type, def: def || null, desc: desc || null });
   const eLabel = ev => (EV.find(e => e[1] === ev) || [0, ev, ev])[2];
   const collectLog = [

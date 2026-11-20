@@ -7,6 +7,8 @@
   const KIND = { screen: '화면', action: '행동', error: '오류' };
   const LOG_KIND = { start: '보내기 시작', stop: '보내기 멈춤', rename: '이름 바꿈', unit: '숫자 뜻 바뀜', sender: '보내는 쪽 바뀜', metric: '지표 정의 바뀜', note: '메모' };
   const UNIT = { sec: '초' };
+  const ROLE = { pray: '기도', finish: '마침', answer: '대답·풀기', keep: '남기기', meditate: '묵상·펴 보기', reflect: '돌아보기', quiz: '퀴즈 풀기', share: '나눔 마침' };
+  const roleName = r => ROLE[r] || r || '';
   const AREA = { note: '노트', community: '공동체', church: '교회' };
   const TABLES = [
     ['activity', '활동한 사람·사건 수·새로 온 사람(날·주·달)'], ['core', '핵심 행동을 한 사람(영역·역할별)'],
@@ -40,11 +42,14 @@
     return s;
   };
   const field = (label, ctl) => el('label', null, label, ctl);
-  function tbl(head, rows, numCols) {
-    const nc = numCols || [];
-    return el('div', { class: 'us-tblw' }, el('table', { class: 'st-tbl rs-tbl' + (head.length >= 8 ? ' wide' : head.length >= 4 ? ' mid' : '') },
+  // stack({bold, meta}): 700px 아래에서는 표 대신 줄마다 쌓아 보인다(굵은 칸 하나, 한 줄에 이어 쓰는 칸들, 나머지는 아래 글)
+  function tbl(head, rows, numCols, stack) {
+    const nc = numCols || [], st = stack || null;
+    const cls = (i, v) => [nc.includes(i) ? 'num' : '', st && st.bold === i ? 'sb' : '', st && st.meta.includes(i) ? 'sm' : '', c0(v) ? 'empty' : ''].filter(Boolean).join(' ') || null;
+    const c0 = v => v == null || v === '';
+    return el('div', { class: 'us-tblw' }, el('table', { class: 'st-tbl rs-tbl' + (st ? ' stack' : head.length >= 8 ? ' wide' : head.length >= 4 ? ' mid' : '') },
       el('thead', null, el('tr', null, ...head.map((h, i) => el('th', { class: nc.includes(i) ? 'num' : null }, h)))),
-      el('tbody', null, ...rows.map(r => el('tr', null, ...r.map((c, i) => el('td', { class: nc.includes(i) ? 'num' : null }, c == null || c === '' ? '-' : String(c))))))));
+      el('tbody', null, ...rows.map(r => el('tr', null, ...r.map((c, i) => el('td', { class: cls(i, c) }, c0(c) ? '-' : String(c))))))));
   }
   const ym = d => d ? String(d).slice(0, 7) : null;
   const fmtCell = v => v == null ? '' : typeof v === 'boolean' ? (v ? 'true' : 'false') : String(v);
@@ -148,7 +153,7 @@
   function codebookCard(bk) {
     const list = el('div', null), count = el('p', { class: 'hint' });
     const events = bk.events || [];
-    const coreText = e => e.core ? (AREA[e.core.area] || e.core.area) + ' · ' + e.core.role : '';
+    const coreText = e => e.core ? (AREA[e.core.area] || e.core.area) + ' · ' + roleName(e.core.role) : '';
     function pass(e) {
       if (R.fApp && e.app !== R.fApp) return false;
       if (R.fKind && e.kind !== R.fKind) return false;
@@ -177,12 +182,12 @@
       Csv.download('koinobia-codebook-' + String(today()).replace(/-/g, ''),
         ['코이노비아 이용 통계 · 코드북(연구용, 전체 이름)', '지표 정의 판: ' + (bk.version || ''), '내보낸 날: ' + today(),
           '주의: 처음·마지막으로 본 날은 서버에 처음·마지막으로 들어온 날이고, 앱이 보내기 시작한 날이 아닙니다. precision이 month이면 그 달의 1일로 적은 값입니다.',
-          '열 core_area·core_role = 핵심 행동 표의 영역·역할(핵심 행동이 아니면 비움). n_unit = 사건의 숫자(n) 뜻(sec은 초).'],
-        ['app', 'ev', 'label', 'kind', 'n_unit', 'core_area', 'core_role', 'trigger_note', 'first_seen', 'first_precision', 'last_seen', 'last_precision', 'seen_days'],
-        events.map(e => [e.app, e.ev, e.label, e.kind, e.n_unit, e.core && e.core.area, e.core && e.core.role, e.trigger_note, e.first_seen, e.first_precision, e.last_seen, e.last_precision, e.seen_days && e.seen_days.n]));
+          '열 core_area·core_role·core_role_label = 핵심 행동 표의 영역·역할(키와 한글 이름, 핵심 행동이 아니면 비움). n_unit = 사건의 숫자(n) 뜻(sec은 초).'],
+        ['app', 'ev', 'label', 'kind', 'n_unit', 'core_area', 'core_role', 'core_role_label', 'trigger_note', 'first_seen', 'first_precision', 'last_seen', 'last_precision', 'seen_days'],
+        events.map(e => [e.app, e.ev, e.label, e.kind, e.n_unit, e.core && e.core.area, e.core && e.core.role, e.core && roleName(e.core.role), e.trigger_note, e.first_seen, e.first_precision, e.last_seen, e.last_precision, e.seen_days && e.seen_days.n]));
     } }, '코드북 CSV 내려받기');
     draw();
-    return shell('코드북',
+    return shell('데이터 사전(코드북)',
       ['앱이 보내는 모든 이름(아직 안 쓰인 것도)의 뜻과 핵심 행동 표시예요.', '처음·마지막으로 본 날은 서버에 처음·마지막으로 들어온 날이에요. 앱이 보내기 시작한 날이 아니에요. 달만 남은 오래된 기록은 YYYY-MM으로 보여요.'],
       el('div', { class: 'rs-grid' }, field('찾기', search), field('앱', sel('앱', APPS, R.fApp, v => { R.fApp = v; draw(); })),
         field('종류', sel('종류', [['', '전체'], ['screen', '화면'], ['action', '행동'], ['error', '오류']], R.fKind, v => { R.fKind = v; draw(); })),
@@ -201,9 +206,9 @@
     return shell('지표 정의',
       ['논문에는 지표 이름과 판 번호를 같이 적으세요. 정의가 바뀌면 새 판이 생기고, 옛 판은 지워지지 않아요.', '핵심 행동 표는 "핵심 행동을 한 사람"을 세는 기준이에요.'],
       el('p', { class: 'hint' }, '현재 판 ' + (bk.version || '')),
-      ms.length ? tbl(['지표', '판', '정의', '시작일'], ms.map(m => [m.name, m.ver, m.def, m.since])) : el('p', { class: 'msg us-empty' }, '지표 정의가 없어요.'),
+      ms.length ? tbl(['지표', '판', '정의', '시작일'], ms.map(m => [m.name, m.ver, m.def, m.since]), [], { bold: 0, meta: [1, 3] }) : el('p', { class: 'msg us-empty' }, '지표 정의가 없어요.'),
       el('h3', { class: 'us-sub' }, '핵심 행동 표'),
-      core.length ? tbl(['앱', '영역', '코드', '역할', '이름'], core.map(c => [APP_NAME[c.app] || c.app, AREA[c.area] || c.area, c.ev, c.role, c.label])) : el('p', { class: 'msg us-empty' }, '핵심 행동 표가 비었어요.'),
+      core.length ? tbl(['앱', '영역', '코드', '역할', '이름'], core.map(c => [APP_NAME[c.app] || c.app, AREA[c.area] || c.area, c.ev, roleName(c.role), c.label]), [], { bold: 4, meta: [0, 1, 2, 3] }) : el('p', { class: 'msg us-empty' }, '핵심 행동 표가 비었어요.'),
       el('div', { class: 'rs-act' }, csv));
   }
 
@@ -214,7 +219,7 @@
     if (!L.day) L.day = today();
     const listBox = el('div', null), formBox = el('div', null);
     function drawList() {
-      listBox.replaceChildren(log.length ? tbl(['날짜', '앱', '이름', '종류', '내용'], log.map(l => [l.day, l.app ? APP_NAME[l.app] || l.app : '전체', l.ev || '', LOG_KIND[l.kind] || l.kind, l.note])) : el('p', { class: 'msg us-empty' }, '아직 기록이 없어요.'));
+      listBox.replaceChildren(log.length ? tbl(['날짜', '앱', '이름', '종류', '내용'], log.map(l => [l.day, l.app ? APP_NAME[l.app] || l.app : '전체', l.ev || '', LOG_KIND[l.kind] || l.kind, l.note]), [], { bold: -1, meta: [0, 1, 2, 3] }) : el('p', { class: 'msg us-empty' }, '아직 기록이 없어요.'));
     }
     const evOpts = () => {
       const seen = new Set(), out = [['', '(없음)']];
@@ -268,7 +273,7 @@
       box.replaceChildren(exportCard(bk), codebookCard(bk), metricsCard(bk), logCard(bk));
     }, e => {
       if (!current()) return;
-      const M = ['연구용 내보내기', '코드북', '지표 정의', '수집 변경 기록'];
+      const M = ['연구용 내보내기', '데이터 사전(코드북)', '지표 정의', '수집 변경 기록'];
       box.replaceChildren(...M.map(t => shell(t, null, errLine(e))));
     });
     return [box];

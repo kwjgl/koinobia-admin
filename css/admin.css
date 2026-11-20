@@ -338,3 +338,13 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .rs-tbl.wide { min-width: 72em; }
 .rs-tbl td:nth-child(n+3) { min-width: 4.5em; }
 .rs-tbl td, .rs-tbl th { vertical-align: top; }
+@media (max-width: 699px) {
+  .rs-tbl.stack, .rs-tbl.stack tbody { display: block; min-width: 0; }
+  .rs-tbl.stack thead { display: none; }
+  .rs-tbl.stack tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .rs-tbl.stack td { display: block; padding: 0; border: 0; min-width: 0; text-align: left; white-space: normal; flex: 0 0 100%; }
+  .rs-tbl.stack td.sb { order: -2; font-weight: 700; }
+  .rs-tbl.stack td.sm { flex: 0 0 auto; order: -1; color: var(--ink-2); font-size: .85em; }
+  .rs-tbl.stack td.sm ~ td.sm::before { content: " · "; white-space: pre; }
+  .rs-tbl.stack td.empty { display: none; }
+}
