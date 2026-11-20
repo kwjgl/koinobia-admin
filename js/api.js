@@ -172,7 +172,11 @@
       // 기능과 다시 오기·묶음 비교·출시 표시(040). 묶음 p_by는 device·standalone·ver
       featureReturn: a => rpc('admin_usage_feature_return', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
       segments: a => rpc('admin_usage_segments', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_by: a.by || 'device' }),
-      releases: a => rpc('admin_usage_releases', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null })
+      releases: a => rpc('admin_usage_releases', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
+      // 연구 탭(041). 코드북·수집 변경 기록·연구용 내보내기. 서버 SQL 041이 없으면 code:'sql'로 실패한다
+      codebook: () => rpc('admin_usage_codebook'),
+      collectLogAdd: a => rpc('admin_usage_collect_log_add', { p_day: a.day, p_app: a.app || null, p_ev: a.ev || null, p_kind: a.kind, p_note: a.note }),
+      research: a => rpc('admin_usage_research', { p_table: a.table, p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'week', p_steps: a.steps || null })
     }
   };
   window.api = api;
