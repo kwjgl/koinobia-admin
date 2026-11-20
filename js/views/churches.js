@@ -7,7 +7,8 @@
   const SWITCHES = [
     ['church_open', '교회 문', '교회 기능을 쓸 수 있는 사람을 정해요. 코이데와 디다코 교회에 함께 적용돼요.'],
     ['church_apply', '교회 신청', '교회 신청서를 낼 수 있는 사람을 정해요.'],
-    ['community_open', '공동체', '코이데 공동체를 쓸 수 있는 사람을 정해요. 디다코 공동체 스위치는 따로 있고, 이 화면에는 아직 없어요.'],
+    ['community_open', '코이데 공동체', '코이데 공동체를 쓸 수 있는 사람을 정해요.'],
+    ['didako_community_open', '디다코 공동체', '디다코 공동체를 쓸 수 있는 사람을 정해요.'],
     ['usage_track', '이용 통계 기록', '앱이 이름 없는 이용 기록을 서버에 보낼지 정해요. 코이데와 디다코에 함께 적용돼요.']
   ];
   // 값마다 바꾸면 어떻게 되는지(확정 상자에 보인다)
@@ -15,6 +16,7 @@
     church_open: { off: '아무도 교회 기능을 쓸 수 없어요.', admins: '앱 관리자 계정만 교회 기능을 써요.', on: '누구나 교회 기능을 쓸 수 있어요.' },
     church_apply: { off: '교회 신청을 받지 않아요.', admins: '앱 관리자만 교회 신청서를 낼 수 있어요.', on: '누구나 교회 신청서를 낼 수 있어요.' },
     community_open: { off: '코이데 공동체를 닫아요.', admins: '앱 관리자 계정만 코이데 공동체를 써요.', on: '누구나 코이데 공동체를 쓸 수 있어요.' },
+    didako_community_open: { off: '디다코 공동체를 닫아요.', admins: '앱 관리자 계정만 디다코 공동체를 써요.', on: '누구나 디다코 공동체를 쓸 수 있어요.' },
     usage_track: { off: '이용 기록을 받지 않아요.', on: '앱이 이름 없는 이용 기록을 보내요.' }
   };
   const NEED_OK = ['church_open', 'church_apply', 'usage_track'];   // '켜짐'으로 바꿀 때 준비 확인 체크가 필요한 것
@@ -238,7 +240,7 @@
     function build() {
       const kids = [el('h1', null, '교회'),
         el('p', { class: 'eyebrow' }, '스위치'),
-        el('div', { class: 'card sw-list' }, ...SWITCHES.map(([k, n, d]) => switchRow(k, n, d))),
+        el('div', { class: 'card sw-list' }, ...SWITCHES.filter(([k]) => k !== 'didako_community_open' || st.sw.some(x => x.key === k)).map(([k, n, d]) => switchRow(k, n, d))),
         el('p', { class: 'eyebrow' }, '교회 ' + st.list.length + '곳 (만든 순서)')];
       kids.push(st.list.length ? el('div', { class: 'aa-grid' }, ...st.list.map(card)) : el('div', { class: 'card' }, el('p', { class: 'msg' }, '아직 교회가 없어요.')));
       kids.push(st.add ? addForm() : el('button', { class: 'aa-add', type: 'button', onclick: () => { st.add = true; redraw(); } }, el('span', null, '+'), '교회 만들기'));

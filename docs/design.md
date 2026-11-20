@@ -43,7 +43,7 @@
 | 로그인 | `admin_me`(036) |
 | 오늘 | `admin_today`(036) |
 | 교회 신청 | `church_apply_admin_list`, `church_apply_make`, `church_apply_reject`(035) |
-| 교회·스위치 | `admin_church_list`, `admin_church_create`, `admin_church_rename`, `admin_church_state`, `admin_church_code`, `admin_church_invite`, `admin_setting_list`, `admin_setting_set`, `admin_log_list`(036) |
+| 교회·스위치 | `admin_church_list`, `admin_church_create`, `admin_church_rename`, `admin_church_state`, `admin_church_code`, `admin_church_invite`, `admin_setting_list`, `admin_setting_set`, `admin_log_list`(036, 스위치 둘 함수는 039에서 디다코 공동체 키를 더함) |
 | 이용 통계 | `admin_usage_active`, `_signups`, `_retention`, `_features`, `_funnel`, `_heatmap`, `_devices`, `_cross_app`, `_dormant`(006), `admin_usage_stickiness`, `_frequency`, `_duration`, `_new_returning`(037) |
 | 의견함 | `admin_feedback_list`, `admin_feedback_mark_read`(006) |
 | 공동체 | `admin_community_health`, `admin_community_lookup`, `admin_community_close`(005·006), `admin_community_reports`(036) |
@@ -79,3 +79,4 @@
 - **2026-11-20 스위치 도움말·확정 문구를 값별 뜻으로 고친다.** 이유: "켜짐(으)로 바꿔요" 같은 어색한 글을 없애고, 확정 상자에 이름과 바뀌는 값, 바꾸면 어떻게 되는지를 두 줄로 보인다. 설명은 '?' 도움말에만 둔다.
 - **2026-11-20 '아무도 안 쓴 기능'은 전체 앱일 때 앱별 소제목으로 묶고, 스위치 확정 상자 두 줄 사이를 좁힌다.** 이유: 코이데·디다코에 같은 이름('노트 열기')이 있어 중복처럼 보였고, 확정 상자의 두 줄이 멀어 한 덩어리로 읽히지 않았다. 앱 하나만 고르면 소제목 없이 그대로 보인다.
 - **2026-11-20 맨 위에 코이노비아 로고 상단 바를 둔다.** 이유: 사용자 요청. 휴대폰에서 위가 허전하고 메뉴 칩이 바로 시작해서. 로고는 코이노비아 저장소의 SVG를 `img/`에 복사했다(`img-src 'self'`로 이미 허용). 이용 통계 탭은 좁은 폰(400px 이하)에서 한 줄로 보이게 글자·여백을 조금 줄였다.
+- **2026-11-20 운영자 사이트가 디다코 공동체 스위치도 바꾼다.** 이유: 코이데·디다코 공동체 열림을 한 화면에서 다루려는 것이다(사용자 요청). 스위치 화면에 '디다코 공동체' 줄을 더하고 옛 '공동체'는 '코이데 공동체'로 고쳤다. 서버는 pray-for `039_admin_didako_switch.sql`이 `admin_setting_list`·`admin_setting_set`에 키 `didako_community_open`을 더해 디다코의 `didako_setting` `community_open`을 읽고 쓴다. 039를 넣기 전(서버가 이 키를 안 주면)에는 이 줄을 보이지 않는다. '켜짐' 준비 확인 체크는 코이데 공동체처럼 붙이지 않는다.
