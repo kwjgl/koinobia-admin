@@ -202,7 +202,11 @@
       card('아무도 안 쓴 기능', '이 기간에 한 번도 쓰이지 않은 기능이에요.', null, load, d => {
         const u = (d.items || []).filter(i => i.unused);
         if (!u.length) return nothing('모든 기능이 한 번 이상 쓰였어요.');
-        return el('div', { class: 'ch-todos' }, ...u.map(i => el('span', { class: 'ch-todo warn' }, i.label)));
+        const chips = list => el('div', { class: 'ch-todos' }, ...list.map(i => el('span', { class: 'ch-todo warn' }, i.label)));
+        if (S.app) return chips(u);
+        const out = el('div', null);
+        [...new Set(u.map(i => i.app))].forEach(ap => out.append(el('h3', { class: 'us-sub' }, appName(ap)), chips(u.filter(i => i.app === ap))));
+        return out;
       }, tk),
       card('오류', '오류가 난 사람 수예요(원인 글은 모으지 않아요).', null, load, d => bars((d.items || []).filter(i => i.kind === 'error'), 'users', '오류', [['f1', '사람 수'], ['mask', C.MASK + '이라 가림']]), tk),
       card('코이데 교회 화면', '교회 기능의 화면·행동을 한 묶음으로 접어 두었어요.', null, load, d => {
