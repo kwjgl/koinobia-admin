@@ -115,7 +115,8 @@ select.field { appearance: auto; }
 .td-row { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 6px 0; color: var(--ink); text-decoration: none; min-height: 52px; }
 a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: none; }
 .td-label { color: var(--ink-2); }
-a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
+a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: -.4em; }
+a.td-row > :first-child { flex: 1 1 auto; }
 .td-val { font-variant-numeric: tabular-nums; text-align: right; }
 
 /* 교회 신청 화면 */
