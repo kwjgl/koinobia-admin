@@ -5,7 +5,7 @@
   const C = Charts;
   const APPS = [['', '전체'], ['koide', '코이데'], ['didako', '디다코'], ['telio', '텔리오']];
   const APP_NAME = { koide: '코이데', didako: '디다코', telio: '텔리오' };
-  const TABS = [['glance', '한눈에'], ['feature', '기능'], ['flow', '흐름'], ['back', '다시 오는 사람'], ['time', '시간'], ['device', '기기·앱']];
+  const TABS = [['glance', '한눈에'], ['feature', '기능'], ['flow', '흐름'], ['back', '다시 오는 사람'], ['time', '시간'], ['device', '기기·앱'], ['research', '연구']];
   const FLOWS = [
     { app: 'koide', name: '코이데 노트 첫 기도', steps: ['note.open', 'note.item-add', 'note.pray-start', 'note.pray-done'], note: '활성화율: 처음 노트를 열고 이 기간 안에 기도하기를 마친 사람의 비율이에요.' },
     { app: 'koide', name: '코이데 교회 첫 접속', steps: ['church.step-login', 'church.step-consent', 'church.step-app'], note: '부서·사랑방·가정 화면은 건너뛰는 사람이 있어서 순서 깔때기에서 뺐어요.' },
@@ -17,7 +17,7 @@
   ];
   const S = { app: '', days: 30, tab: 'glance', grain: 'day', nrGrain: 'week', kind: '', months: 6, flow: 0, fdays: 7, custom: ['', '', '', '', '', '', '', ''], customGo: null, cross: '', fkind: 'action', fsort: 'adj', fhide: false, seg: 'device', segm: 'ret', seq: 0 };
   const cache = new Map();
-  let panelEl = null;
+  let panelEl = null, daysSel = null;
   // 표 CSV(운영용) 머리말에 쓰는 앱·기간·날짜. 지표 정의 판은 서버 040의 m1
   C.setCsvCtx(() => { const r = range(); return { app: S.app ? APP_NAME[S.app] : '전체', from: r.from, to: r.to, today: kst(Date.now()), ver: 'm1' }; });
 
@@ -653,10 +653,12 @@
     ];
   }
 
-  const BUILD = { glance, feature, flow, back, time, device };
+  const research = tk => Research.build(tk, () => tk === S.seq, S.app);
+  const BUILD = { glance, feature, flow, back, time, device, research };
 
   function panel() {
     const tk = ++S.seq;
+    if (daysSel) daysSel.hidden = S.tab === 'research';   // 연구 탭은 자기 기간을 쓴다
     panelEl.replaceChildren(...BUILD[S.tab](tk));
   }
 
@@ -700,10 +702,11 @@
       if (j < 0) return;
       e.preventDefault(); pick(TABS[j][0]); document.getElementById('us-tab-' + TABS[j][0]).focus();
     });
+    daysSel = select('기간', [[7, '최근 7일'], [30, '최근 30일'], [90, '최근 90일'], [365, '최근 365일']], S.days, v => { S.days = Number(v); panel(); });
     const ctl = el('div', { class: 'us-ctl' },
       select('앱', APPS, S.app, v => { S.app = v; panel(); }),
-      select('기간', [[7, '최근 7일'], [30, '최근 30일'], [90, '최근 90일'], [365, '최근 365일']], S.days, v => { S.days = Number(v); panel(); }),
-      el('button', { class: 'btn small ghost', type: 'button', onclick: () => { cache.clear(); panel(); } }, '다시 불러오기'));
+      daysSel,
+      el('button', { class: 'btn small ghost', type: 'button', onclick: () => { cache.clear(); Research.refresh(); panel(); } }, '다시 불러오기'));
     const sec = el('section', null, UI.withInfo(el('h1', null, '이용 통계'), '앱 전체 합계만 보여요. 사람이나 교회별로 나누지 않아요.'),
       banner(), ctl, tabs, panelEl);
     panel();

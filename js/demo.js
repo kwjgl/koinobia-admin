@@ -4,6 +4,7 @@
    (이용 통계) ?demo=small 038 이전 서버 모양 확인용(거의 다 가림)  ?demo=empty 기록 없음(가린 값 없음)  ?demo=error 첫 호출 뒤 이용 통계 호출이 계속 실패
    ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
    (이용 통계 040) ?demo&no040 핵심 지표·이상 신호·기능과 다시 오기·묶음 비교·출시 표시 함수가 없는 모양  &floor 오래된 기록이 접힌 모양  &alert=none|off|quiet 이상 신호 없음·기록 꺼짐·조용한 앱
+   (이용 통계 041) ?demo&no041 연구 탭(코드북·수집 변경 기록·연구용 내보내기) 함수가 없는 모양. 수집 변경 기록 추가는 메모리에만 반영
    (이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
 (function () {
   const q = new URLSearchParams(location.search);
@@ -112,7 +113,104 @@
     ['didako', 'church.open', '교회 열기', 'screen'], ['didako', 'church.keep-sentence', '교회 오늘 남길 한 문장', 'action'], ['didako', 'church.reflect', '교회 돌아보기 남기기', 'action'],
     ['didako', 'didako.open', '디다코 열기', 'screen'], ['didako', 'didako.item-add', '기록 추가', 'action'], ['didako', 'didako.error-load', '불러오기 오류', 'error']
   ];
+  // ---- 연구 탭(041). ?demo&no041 이면 함수가 없는 모양. 로그 추가는 메모리에만 반영한다 ----
+  const TRIG = { 'note.open': '노트 화면이 열릴 때', 'note.pray-done': '기도하기 끝 화면에서 마침을 누를 때', 'church.open': '교회 화면이 열릴 때', 'cm.keep-sentence': '오늘 남길 한 문장을 저장할 때' };
+  const CORE = { 'koide:note.pray-done': ['note', 'finish'], 'koide:note.item-add': ['note', 'keep'], 'koide:church.pray-done': ['church', 'finish'], 'koide:church.item-save': ['church', 'keep'], 'koide:community.first-topic': ['community', 'keep'],
+    'didako:note.answer': ['note', 'answer'], 'didako:cm.keep-sentence': ['community', 'keep'], 'didako:cm.reflect': ['community', 'reflect'], 'didako:church.keep-sentence': ['church', 'keep'], 'didako:church.reflect': ['church', 'reflect'] };
+  const rcol = (key, label, type, def, desc) => ({ key, label, type, def: def || null, desc: desc || null });
+  const eLabel = ev => (EV.find(e => e[1] === ev) || [0, ev, ev])[2];
+  const collectLog = [
+    { id: 3, day: '2026-11-12', app: 'koide', ev: 'church.item-save', kind: 'start', note: '교회 기도제목 저장 사건을 보내기 시작했다(데모 예시).' },
+    { id: 2, day: '2026-11-05', app: 'didako', ev: null, kind: 'sender', note: '디다코 노트가 열 때마다 한 번씩만 보내도록 바뀌었다(데모 예시).' },
+    { id: 1, day: '2026-10-21', app: null, ev: null, kind: 'note', note: '이용 통계 기록을 처음 켰다(데모 예시).' }
+  ];
+  const codebookDemo = () => ({
+    version: 'm1',
+    events: EV.map(e => {
+      const k = e[0] + ':' + e[1], c = CORE[k], h = hh('cb' + k), none = mode === 'empty' || h < .06;
+      const mon = !none && h > .85;
+      return { app: e[0], ev: e[1], kind: e[3], label: e[2], n_unit: e[1] === 'didako.open' ? 'sec' : null, core: c ? { area: c[0], role: c[1] } : null, trigger_note: TRIG[e[1]] || null,
+        first_seen: none ? null : mon ? '2026-05-01' : '2026-0' + (6 + Math.floor(h * 4)) + '-' + String(1 + Math.floor(h * 27)).padStart(2, '0'), first_precision: none ? null : mon ? 'month' : 'day',
+        last_seen: none ? null : '2026-11-19', last_precision: none ? null : 'day', seen_days: { n: none ? 0 : Math.round(20 + 150 * h) } };
+    }),
+    core: Object.keys(CORE).map(k => { const [app, ev] = k.split(':'); return { app, area: CORE[k][0], ev, role: CORE[k][1], label: eLabel(ev) }; }),
+    metrics: [['activity_active', '활동한 사람', '이 기간에 사건이 한 번이라도 있는 서로 다른 계정 수'], ['new_returning', '새로 온 사람·다시 온 사람', '기간 시작 전에 사건이 없었으면 새로, 있었으면 다시'],
+      ['kpi_core', '핵심 행동을 한 사람', '핵심 행동 표의 사건이 하나라도 있는 계정 수'], ['core_table', '핵심 행동 영역·역할별', '영역·역할마다 핵심 행동을 한 계정 수'],
+      ['retention_w1_4_12', '1·4·12주째 다시 온 비율', '첫 사건 뒤 7~14일, 28~35일, 84~91일 사이에 사건이 있는 사람 ÷ 대상 사람'], ['retention_week', '주별 다시 온 비율', '처음 온 주마다 이후 주별로 다시 온 사람'],
+      ['features', '기능별 쓴 사람', '이름마다 사건이 있는 서로 다른 계정 수'], ['feature_return', '기능과 다시 오기', '쓴 주와 안 쓴 주의 다음 주 다시 온 비율 차이'],
+      ['segment_device', '기기별 묶음 비교', '기기 값마다 사람·다시 온 비율·핵심 행동'], ['frequency', '사용 빈도', '최근 N일 동안 온 날 수 구간별 사람'], ['stickiness', '고착도', '하루 평균 활동한 사람 ÷ 한 달 활동한 사람']
+    ].map((m, i) => ({ key: m[0], ver: 'm1', name: m[1], def: m[2], since: i < 9 ? '2026-11-19' : '2026-11-20' })),
+    log: collectLog.map(l => Object.assign({}, l))
+  });
+  const researchDemo = a => {
+    const t = a.p_table, g = a.p_grain || 'week', to = a.p_to || '2026-11-20', from = a.p_from || '2026-08-23';
+    const V = (k, base) => mode === 'empty' ? 0 : sm ? Math.floor(hh(k) * 5) : Math.round(base * (.7 + .6 * hh(k)));
+    const R4 = (n, d) => d ? Math.round(n / d * 1e4) / 1e4 : null;
+    const grainCols = extra => [rcol('period', g === 'day' ? '날짜' : g === 'week' ? '주(월요일 날짜)' : '달(1일 날짜)', 'date')].concat(extra);
+    let cols, rows = [], gr = false, extra = {};
+    const P = periods(from, to, g).slice(-120);
+    if (t === 'activity') {
+      gr = true; cols = grainCols([rcol('active', '활동한 사람', 'people', 'activity_active', '이 기간에 사건이 한 번이라도 있는 서로 다른 계정 수'), rcol('events', '사건 수', 'count', 'activity_active', '이 기간에 받은 사건 수'),
+        rcol('new', '새로 온 사람', 'people', 'new_returning', '이 기간 시작 전에 사건이 없던 활동한 사람'), rcol('returning', '다시 온 사람', 'people', 'new_returning', '이 기간 시작 전에도 사건이 있던 활동한 사람')]);
+      rows = P.map(p => { const n = V('a' + p, 40 * GR[g]), nw = Math.min(n, V('n' + p, 8 * GR[g])); return [p, n, sm ? n * 3 : V('e' + p, 130 * GR[g]), nw, n - nw]; });
+    } else if (t === 'core') {
+      gr = true; const ks = ['koide_note', 'koide_community', 'koide_church', 'didako_note', 'didako_community', 'didako_church', 'role_pray', 'role_finish', 'role_answer', 'role_keep', 'role_reflect', 'role_meditate'];
+      cols = grainCols([rcol('core_people', '핵심 행동을 한 사람', 'people', 'kpi_core', '핵심 행동 표의 사건이 하나라도 있는 계정 수')].concat(ks.map(k => rcol(k, k, 'people', 'core_table', k + ' 영역·역할을 한 사람'))));
+      rows = P.map(p => [p, V('c' + p, 20 * GR[g])].concat(ks.map(k => V(k + p, 9 * GR[g]))));
+    } else if (t === 'retention_month' || t === 'retention_week') {
+      const wk = t === 'retention_week', n = wk ? 12 : 6;
+      cols = [rcol('cohort', wk ? '처음 온 주(월요일 날짜)' : '처음 온 달(1일 날짜)', 'date'), rcol('size', '처음 온 사람', 'people', 'retention_w1_4_12', '이 달·주에 처음 사건이 생긴 계정 수')];
+      [1, 4, 12].forEach(w => cols.push(rcol('w' + w + '_num', w + '주째 다시 옴(사람)', 'people'), rcol('w' + w + '_den', w + '주째 대상(사람)', 'people'), rcol('w' + w + '_rate', w + '주째 다시 온 비율', 'ratio')));
+      for (let i = n; i >= 1; i--) {
+        const d = new Date(Date.UTC(2026, wk ? 10 : 10 - i, wk ? 16 - 7 * i : 1)), k = 'r' + t + i, sz = V(k, wk ? 10 : 35), r = [d2s(d), sz];
+        [1, 4, 12].forEach(w => { const den = i * (wk ? 1 : 4.3) > w ? sz : Math.floor(sz * .5), num = Math.min(den, V(k + w, den * (.7 - w * .03))); r.push(num, den, R4(num, den)); });
+        rows.push(r);
+      }
+    } else if (t === 'features') {
+      cols = [rcol('app', '앱', 'text'), rcol('ev', '이름', 'text'), rcol('label', '뜻', 'text'), rcol('kind', '종류', 'text'), rcol('users', '쓴 사람', 'people', 'features'), rcol('active', '활동한 사람', 'people', 'features'), rcol('reach', '쓴 비율', 'ratio', 'features'), rcol('events', '사건 수', 'count', 'features')];
+      rows = EV.filter(e => !a.p_app || e[0] === a.p_app).map(e => { const act = V('fa', 90), u = Math.min(act, V('f' + e[1] + e[0], 40)); return [e[0], e[1], e[2], e[3], u, act, R4(u, act), sm ? u * 2 : u * 4]; });
+    } else if (t === 'funnel') {
+      const st = a.p_steps || []; if (st.length < 2) throw err('P0001', 'bad: 흐름은 단계를 2~8개로 골라 주세요.', 400);
+      cols = [rcol('step', '단계', 'number'), rcol('ev', '이름', 'text'), rcol('label', '뜻', 'text'), rcol('users', '이 단계까지 온 사람', 'people'), rcol('prev_users', '앞 단계 사람', 'people'), rcol('from_prev', '앞 단계에서 이어진 비율', 'ratio'), rcol('first_users', '첫 단계 사람', 'people'), rcol('from_first', '첫 단계에서 이어진 비율', 'ratio')];
+      let prev = null, first = null; extra = { funnel_days: 30 };
+      rows = st.map((ev, i) => { const u = sm ? Math.max(0, 4 - i) : mode === 'empty' ? 0 : Math.round(100 * Math.pow(.7, i)); if (i === 0) first = u; const r = [i + 1, ev, eLabel(ev), u, i ? prev : null, i ? R4(u, prev) : null, first, i ? R4(u, first) : null]; prev = u; return r; });
+    } else if (t === 'feature_return') {
+      cols = [rcol('app', '앱', 'text'), rcol('ev', '이름', 'text'), rcol('label', '뜻', 'text'), rcol('area', '영역', 'text'), rcol('role', '역할', 'text'), rcol('pw_with', '쓴 사람-주', 'count'), rcol('people_with', '쓴 서로 다른 사람', 'people'), rcol('ret_with', '쓴 주 뒤 다시 옴', 'count'), rcol('rate_with', '쓴 주의 다시 온 비율', 'ratio'),
+        rcol('pw_without', '안 쓴 사람-주', 'count'), rcol('ret_without', '안 쓴 주 뒤 다시 옴', 'count'), rcol('rate_without', '안 쓴 주의 다시 온 비율', 'ratio'), rcol('lift', '차이', 'number'), rcol('adj_lift', '보정한 차이', 'number'), rcol('thin', '표본 적음', 'bool')];
+      rows = EV.filter(e => e[3] === 'action' && (!a.p_app || e[0] === a.p_app)).map(e => {
+        const c = CORE[e[0] + ':' + e[1]] || [], pw = V('pw' + e[1], 80), rw = Math.min(pw, V('rw' + e[1], 50)), po = V('po' + e[1], 300), ro = Math.min(po, V('ro' + e[1], 150)), a1 = R4(rw, pw), a2 = R4(ro, po);
+        return [e[0], e[1], e[2], c[0] || '', c[1] || '', pw, Math.min(pw, V('pp' + e[1], 20)), rw, a1, po, ro, a2, a1 == null || a2 == null ? null : Math.round((a1 - a2) * 1e4) / 1e4, a1 == null || a2 == null ? null : Math.round((a1 - a2) * 8e3) / 1e4, pw < 30]; });
+    } else if (/^segments_/.test(t)) {
+      const ks = t === 'segments_device' ? ['(전체)', 'phone', 'pc', 'tablet'] : t === 'segments_standalone' ? ['(전체)', 'true', 'false'] : ['(전체)', 'v41', 'v40', 'v39'];
+      cols = [rcol('k', t === 'segments_device' ? '기기' : t === 'segments_standalone' ? '홈 화면 앱으로 열었나' : '앱 판', 'text'), rcol('people', '사람', 'people'), rcol('ret_num', '다음 주에 다시 옴(사람-주)', 'count'), rcol('ret_den', '센 사람-주', 'count'), rcol('ret_rate', '다시 온 비율', 'ratio'),
+        rcol('core_num', '핵심 행동한 사람', 'people'), rcol('core_den', '묶음 사람', 'people'), rcol('days_pw', '그 주에 온 날 수 평균', 'number'), rcol('thin', '표본 적음', 'bool')];
+      rows = ks.map((k, i) => { const p = V('sg' + t + k, 120 / (i + 1)), den = V('sd' + k, p * 5), num = Math.min(den, V('sn' + k, den * .5)), cn = Math.min(p, V('sc' + k, p * .6)); return [k, p, num, den, R4(num, den), cn, p, p ? Math.round((1.5 + hh(k)) * 100) / 100 : null, den < 30]; });
+    } else if (t === 'frequency') {
+      cols = [rcol('days_from', '온 날 수(부터)', 'number'), rcol('days_to', '온 날 수(까지, 비면 그 이상)', 'number'), rcol('users', '사람', 'people'), rcol('active', '활동한 사람', 'people')];
+      const bs = [[1, 1], [2, 3], [4, 7], [8, 14], [15, null]], us = bs.map((b, i) => V('fq' + i, 60 / (i + 1))), tot = us.reduce((x, y) => x + y, 0);
+      rows = bs.map((b, i) => [b[0], b[1], us[i], tot]);
+    } else if (t === 'stickiness') {
+      cols = [rcol('month', '달(1일 날짜)', 'date'), rcol('partial', '진행 중인 달', 'bool'), rcol('mau', '한 달 활동한 사람', 'people'), rcol('dau_avg', '하루 평균 활동한 사람', 'number'), rcol('ratio', '고착도', 'ratio')];
+      rows = [5, 4, 3, 2, 1, 0].map(i => { const d = new Date(Date.UTC(2026, 10 - i, 1)), mau = V('st' + i, 90), av = mau ? Math.round(mau * (.12 + .1 * hh('av' + i)) * 100) / 100 : null; return [d2s(d), i === 0, mau, av, mau ? Math.round(av / mau * 1e4) / 1e4 : null]; });
+    } else throw err('P0001', 'bad: 알 수 없는 표예요.', 400);
+    if (mode === 'empty') rows = [];
+    return { meta: Object.assign({ version: 'm1', table: t, app: a.p_app || null, from, to, grain: gr ? g : null, exported_on: '2026-11-20', note: '앱 전체 합계. 사람·교회·원본 단위 값 없음. 작은 숫자(0~4)도 그대로 들어 있어요' }, extra), columns: cols, rows };
+  };
+  const demo41 = (name, a) => {
+    if (q.has('no041')) throw err('PGRST202', 'not found', 404);
+    if (name === 'admin_usage_codebook') return codebookDemo();
+    if (name === 'admin_usage_research') return researchDemo(a);
+    const day = String(a.p_day || ''), note = String(a.p_note || '').trim(), ev = a.p_ev || null, ap = a.p_app || null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > '2026-11-20') throw err('P0001', 'bad: 날짜는 오늘까지 고를 수 있어요.', 400);
+    if (!['start', 'stop', 'rename', 'unit', 'sender', 'metric', 'note'].includes(a.p_kind)) throw err('P0001', 'bad: 종류를 다시 골라 주세요.', 400);
+    if (note.length < 1 || note.length > 200) throw err('P0001', 'bad: 내용은 1~200자로 적어 주세요.', 400);
+    if (ev && !EV.some(e => e[1] === ev && (!ap || e[0] === ap))) throw err('P0001', 'bad: 알 수 없는 이름이에요.', 400);
+    collectLog.unshift({ id: collectLog.length + 1, day, app: ap, ev, kind: a.p_kind, note });
+    collectLog.sort((x, y) => (y.day > x.day ? 1 : y.day < x.day ? -1 : y.id - x.id));
+    return collectLog.map(l => Object.assign({}, l));
+  };
   const usageDemo = (name, a) => {
+    if (/^admin_usage_(codebook|collect_log_add|research)$/.test(name)) return demo41(name, a);
     if (name === 'admin_usage_active') {
       const g = a.p_grain || 'day';
       return { app: a.p_app, grain: g, from: a.p_from, to: a.p_to, series: periods(a.p_from, a.p_to, g).map(p => { const n = (30 + 45 * hh('a' + p)) * GR[g], k = 'a' + p; return { period: p, active: N(n, k), events: N(n * (3 + 2 * hh('e' + p)), k) }; }) };
