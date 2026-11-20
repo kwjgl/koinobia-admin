@@ -189,6 +189,8 @@ a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
 .gr-dot.hollow { fill: var(--surface); stroke-width: 2; }
 .gr-band { fill: var(--surface-2); }
 .gr-bar { fill: var(--chart-1); }
+.gr-track { fill: var(--surface-2); }
+.gr-sep { stroke: var(--line); stroke-width: 1; }
 .gr-seg { stroke: var(--surface); stroke-width: 2; }
 .gr-hmask { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 2; }
 .gr-cell { fill: var(--surface-2); }
