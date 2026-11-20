@@ -2,6 +2,7 @@
    ?demo  앱 관리자   ?demo=out  로그인 전   ?demo=notadmin  앱 관리자 아님   ?demo=error  첫 호출 실패
    ?demo=empty  신청·의견·신고 없음(교회 목록은 그대로)   ?demo=small  038 이전 서버 모양(공동체가 적어 5명 미만 가림 값이 나옴)
    (이용 통계) ?demo=small 038 이전 서버 모양 확인용(거의 다 가림)  ?demo=empty 기록 없음(가린 값 없음)  ?demo=error 첫 호출 뒤 이용 통계 호출이 계속 실패
+   (이용 단계 042) ?demo&no042 교회 카드에 이용 단계 칸이 없는 옛 서버 모양(오늘 화면 줄도 없음)  이용 단계 저장은 메모리에만 반영
    ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
    (이용 통계 040) ?demo&no040 핵심 지표·이상 신호·기능과 다시 오기·묶음 비교·출시 표시 함수가 없는 모양  &floor 오래된 기록이 접힌 모양  &alert=none|off|quiet 이상 신호 없음·기록 꺼짐·조용한 앱
    (이용 통계 041) ?demo&no041 연구 탭(코드북·수집 변경 기록·연구용 내보내기) 함수가 없는 모양. 수집 변경 기록 추가는 메모리에만 반영
@@ -27,12 +28,13 @@
   const bad = m => err('P0001', 'bad: ' + m, 400);
   const find = id => applies.find(a => a.id === id && a.status === '대기') || (() => { throw bad('신청을 찾을 수 없어요.'); })();
   // 교회 목록·스위치·운영 기록(이름은 지어낸 것, HTML이 든 이름은 글자로만 보이는지 보려는 것)
-  const mk = (id, name, kind, status, codes, counts, has_admin, invite_pending) => ({ id, name, kind, status, plan: 'free', created_at: '2026-10-01', codes, counts, invite_pending, has_admin });
+  const dayStr = n => { const d = new Date(Date.now() + n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const mk = (id, name, kind, status, codes, counts, has_admin, invite_pending, plan, plan_until, plan_note) => ({ id, name, kind, status, plan, plan_until: plan_until || null, plan_note: plan_note || null, created_at: '2026-10-01', codes, counts, invite_pending, has_admin });
   const churches = [
-    mk('c1', '<b>사랑</b>교회', '교회', '열림', [{ code: 'LOVE1', status: '열림' }, { code: 'LOVE2', status: '멈춤' }], { members: 12, depts: 2, households: 5, linked: 1, admins: 2 }, true, false),
-    mk('c2', '멈춘교회', '교회', '멈춤', [{ code: 'STOP1', status: '열림' }], { members: 3, depts: 1, households: 1, linked: 0, admins: 1 }, true, false),
-    mk('c3', '<i>시험</i> 공간', '테스트', '열림', [{ code: 'TEST1', status: '열림' }], { members: 1, depts: 1, households: 0, linked: 0, admins: 1 }, true, false),
-    mk('c4', '새싹교회', '교회', '열림', [{ code: 'SPROUT', status: '열림' }], { members: 0, depts: 1, households: 0, linked: 0, admins: 0 }, false, true)
+    mk('c1', '<b>사랑</b>교회', '교회', '열림', [{ code: 'LOVE1', status: '열림' }, { code: 'LOVE2', status: '멈춤' }], { members: 12, depts: 2, households: 5, linked: 1, admins: 2 }, true, false, '유료', dayStr(20), '입금 확인 2026-11-20 <b>예시</b>'),
+    mk('c2', '멈춘교회', '교회', '멈춤', [{ code: 'STOP1', status: '열림' }], { members: 3, depts: 1, households: 1, linked: 0, admins: 1 }, true, false, '시범'),
+    mk('c3', '<i>시험</i> 공간', '테스트', '열림', [{ code: 'TEST1', status: '열림' }], { members: 1, depts: 1, households: 0, linked: 0, admins: 1 }, true, false, '시범'),
+    mk('c4', '새싹교회', '교회', '열림', [{ code: 'SPROUT', status: '열림' }], { members: 0, depts: 1, households: 0, linked: 0, admins: 0 }, false, true, '무료', dayStr(-3))
   ];
   const settings = { church_open: 'admins', church_apply: 'on', community_open: 'on', usage_track: 'off', didako_community_open: 'admins' };
   const allowed = { church_open: ['off', 'admins', 'on'], church_apply: ['off', 'admins', 'on'], community_open: ['off', 'admins', 'on'], usage_track: ['on', 'off'], didako_community_open: ['off', 'admins', 'on'] };
@@ -40,11 +42,12 @@
   const putLog = (action, target) => { logs.unshift({ at: new Date().toISOString(), action, target }); };
   churches.forEach(c => c.codes.forEach(x => usedCodes.push(x.code)));
   const normCode = v => String(v || '').toUpperCase().replace(/[^A-Z0-9가-힣]/g, '');
-  const cList = () => ({ items: JSON.parse(JSON.stringify(churches)) });
+  const cList = () => ({ items: JSON.parse(JSON.stringify(churches)).map(c => { if (q.has('no042')) { delete c.plan; delete c.plan_until; delete c.plan_note; } return c; }) });
+  const planEnd = (a, b) => churches.filter(c => c.plan_until && c.plan_until >= dayStr(a) && c.plan_until <= dayStr(b)).length;
   const sList = () => ({ items: Object.keys(settings).map(key => ({ key, value: settings[key], allowed: allowed[key] })) });
   const church = id => churches.find(c => c.id === id) || (() => { throw bad('교회를 찾지 못했어요.'); })();
   const addChurch = (name, kind, code) => {
-    const c = mk('c-demo-' + (churches.length + 1), name, kind, '열림', [{ code, status: '열림' }], { members: 0, depts: 1, households: 0, linked: 0, admins: 0 }, false, false);
+    const c = mk('c-demo-' + (churches.length + 1), name, kind, '열림', [{ code, status: '열림' }], { members: 0, depts: 1, households: 0, linked: 0, admins: 0 }, false, false, '시범');
     churches.push(c); return c;
   };
   // 의견함(HTML이 든 글은 글자로만 보이는지 보려는 것)
@@ -80,6 +83,7 @@
     feedback_unread: fbUnread(),
     reports_new: commReports().items.reduce((n, i) => n + i.new_count, 0),
     churches: { total: churches.length, test: churches.filter(c => c.kind === '테스트').length, stopped: churches.filter(c => c.status === '멈춤').length, no_admin: churches.filter(c => !c.has_admin).length },
+    ...(q.has('no042') ? {} : { plan_ending: planEnd(0, 30), plan_ended: churches.filter(c => c.plan_until && c.plan_until < dayStr(0)).length }),
     db: { bytes: dbSize().bytes, limit_bytes: 524288000, percent: dbPct },
     switches: Object.assign({}, settings)
   });
@@ -459,6 +463,13 @@
           usedCodes.push(c);
           const ch = addChurch(n, a.p_kind === '테스트' ? '테스트' : '교회', c); ch.invite_pending = true; putLog('church-create', ch.id);
           return ok(Object.assign(cList(), { made: { churchId: ch.id, name: n, code: c, token: 'demo-token-' + ch.id, expires: new Date(Date.now() + 7 * 864e5).toISOString() } }));
+        }
+        if (name === 'admin_church_plan') {
+          if (q.has('no042')) throw err('PGRST202', 'not found', 404);
+          const ch = church(a.p_id);
+          if (!['시범', '무료', '유료'].includes(a.p_plan)) throw bad('이용 단계는 시범·무료·유료 중 하나예요.');
+          if (a.p_note && String(a.p_note).length > 200) throw bad('메모는 200자까지예요.');
+          ch.plan = a.p_plan; ch.plan_until = a.p_until || null; ch.plan_note = a.p_note || null; putLog('church-plan', ch.id + '=' + a.p_plan); return ok(cList());
         }
         if (name === 'admin_church_rename') {
           const ch = church(a.p_id), n = String(a.p_name || '').trim();

@@ -135,6 +135,8 @@
     // 교회 목록·스위치(036). 사람 이름·계정 번호는 오지 않는다
     churchList: () => rpc('admin_church_list'),
     churchCreate: (name, kind, code, dept) => rpc('admin_church_create', { p_name: name, p_kind: kind, p_code: code, p_dept: dept }),
+    // 이용 단계 기록(042). 서버 SQL 042가 없으면 code:'sql'로 실패한다. 기능을 막지 않고 기록만 한다
+    churchPlan: (id, plan, until, note) => rpc('admin_church_plan', { p_id: id, p_plan: plan, p_until: until || null, p_note: note || null }),
     churchRename: (id, name) => rpc('admin_church_rename', { p_id: id, p_name: name }),
     churchState: (id, status) => rpc('admin_church_state', { p_id: id, p_status: status }),
     churchCode: (id, code, op) => rpc('admin_church_code', { p_id: id, p_code: code, p_op: op }),

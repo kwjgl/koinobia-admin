@@ -21,9 +21,12 @@
   };
   const NEED_OK = ['church_open', 'church_apply', 'usage_track'];   // '켜짐'으로 바꿀 때 준비 확인 체크가 필요한 것
   const ACTION = {
-    'church-create': '교회 만듦', 'church-rename': '이름 고침', 'church-state': '멈춤·풀기', 'code-add': '코드 더함',
+    'church-create': '교회 만듦', 'church-rename': '이름 고침', 'church-plan': '이용 단계 기록', 'church-state': '멈춤·풀기', 'code-add': '코드 더함',
     'code-stop': '코드 멈춤', 'code-open': '코드 풀기', invite: '초대 링크 만듦', setting: '스위치 바꿈'
   };
+  const PLANS = ['시범', '무료', '유료'];
+  const PLAN_HELP = '이용 단계를 기록만 해요. 아직 기능을 막지는 않아요. 입금을 확인한 뒤 손으로 바꿔요.';
+  const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const STATS = [['members', '회원'], ['depts', '부서'], ['households', '가정'], ['linked', '연결'], ['admins', '관리자']];
   const norm = v => String(v || '').toUpperCase().replace(/[^A-Z0-9가-힣]/g, '');
   const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -150,6 +153,37 @@
             act(err, () => api.churchCode(c.id, n, 'add'), r => { setList(r); }, '코드를 더했어요.');
           } }, '더하기'), closeBtn(c)));
     }
+    // 이용 단계: 기록만 한다(기능을 막지 않는다). 메모는 운영자만 보는 글이라 이 칸에서만 보인다
+    function planPanel(c) {
+      const err = errP(), actions = el('div', { class: 'actions' });
+      let plan = PLANS.includes(c.plan) ? c.plan : '시범';
+      const segBtns = PLANS.map(p => el('button', { class: 'sw-opt', type: 'button', 'aria-pressed': String(p === plan), 'data-plan': p,
+        onclick: () => { plan = p; segBtns.forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-plan') === plan))); } }, p));
+      const seg = el('div', { class: 'sw-seg', role: 'group', 'aria-label': '이용 단계' }, ...segBtns);
+      const until = el('input', { class: 'field', type: 'date', value: c.plan_until || '', 'aria-label': '이용 기간 끝나는 날' });
+      const clear = el('button', { class: 'link quiet', type: 'button', onclick: () => { until.value = ''; } }, '기간 없음');
+      const note = el('input', { class: 'field', type: 'text', maxlength: '200', value: c.plan_note || '', autocomplete: 'off', placeholder: '입금 확인 2026-11-20', 'aria-label': '메모(운영자만 봐요)' });
+      const showErr = m => { err.textContent = m; err.hidden = !m; };
+      const fields = [until, note];
+      function edit() {
+        fields.forEach(x => { x.disabled = false; }); segBtns.forEach(b => { b.disabled = false; clear.disabled = false; });
+        actions.replaceChildren(el('button', { class: 'btn small', type: 'button', onclick: ask }, '다음'), closeBtn(c));
+      }
+      function ask() {
+        const u = until.value, n = note.value.trim();
+        if (u && !/^\d{4}-\d{2}-\d{2}$/.test(u)) return showErr('날짜를 다시 골라 주세요.');
+        if (n.length > 200) return showErr('메모는 200자까지 적을 수 있어요.');
+        showErr(''); fields.forEach(x => { x.disabled = true; }); segBtns.forEach(b => { b.disabled = true; }); clear.disabled = true;
+        actions.replaceChildren(
+          el('p', { class: 'msg' }, el('b', null, '이용 단계: ' + (c.plan || '정해지지 않음') + ' → ' + plan + (u ? ', ' + u + '까지' : ', 기간 없음'))),
+          el('button', { class: 'btn small', type: 'button', onclick: () => act(err, () => api.churchPlan(c.id, plan, u || null, n || null), r => { setList(r); delete st.open[c.id]; }, '이용 단계를 기록했어요.') }, '저장'),
+          el('button', { class: 'btn small ghost', type: 'button', onclick: edit }, '다시 고치기'));
+      }
+      edit();
+      return el('div', { class: 'aa-form' }, UI.withInfo(el('label', { class: 'f' }, '이용 단계'), PLAN_HELP, { label: '이용 단계 도움말' }), seg,
+        el('label', { class: 'f' }, '이용 기간 끝나는 날(없어도 돼요)'), until, el('div', { class: 'actions' }, clear),
+        el('label', { class: 'f' }, '메모(운영자만 봐요)'), note, err, actions);
+    }
     function invitePanel(c) {
       const v = st.invite[c.id];
       if (!v) {
@@ -173,6 +207,7 @@
           } }, '링크 복사'), closeBtn(c)));
     }
 
+    const hasPlan = c => PLANS.includes(c.plan);   // 042 전 서버는 이 칸을 주지 않는다(또는 옛 값): 숨긴다
     function card(c) {
       const kind = st.open[c.id];
       const todos = [];
@@ -181,16 +216,20 @@
       const kids = [
         el('div', { class: 'aa-head' }, el('b', null, c.name),
           c.kind === '테스트' ? el('span', { class: 'own-tag' }, '테스트') : null,
-          c.status === '멈춤' ? el('span', { class: 'own-tag' }, '멈춤') : null),
+          c.status === '멈춤' ? el('span', { class: 'own-tag' }, '멈춤') : null,
+          hasPlan(c) ? el('span', { class: 'own-tag' }, c.plan) : null,
+          hasPlan(c) && c.plan_until ? el('span', { class: 'hint' }, '~ ' + c.plan_until) : null,
+          hasPlan(c) && c.plan_until && c.plan_until < todayStr() ? el('span', { class: 'ch-todo' }, '기간 지남') : null),
         el('div', { class: 'aa-codes' }, ...c.codes.map(x => el('span', { class: 'aa-code' + (x.status === '열림' ? '' : ' off') }, x.status === '열림' ? x.code : x.code + ' 멈춤'))),
         el('dl', { class: 'aa-stats five' }, ...STATS.map(([k, l]) => el('div', null, el('dt', null, l), el('dd', null, num((c.counts || {})[k]))))),
         todos.length ? el('div', { class: 'ch-todos' }, ...todos.map(t => el('span', { class: 'ch-todo warn' }, t))) : null];
       const tab = (k, label) => el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': kind === k ? 'true' : 'false', onclick: () => { if (st.open[c.id] === k) { delete st.open[c.id]; delete st.invite[c.id]; } else st.open[c.id] = k; redraw(); } }, label);
-      kids.push(el('div', { class: 'aa-acts' }, tab('rename', '이름 고치기'), tab('state', c.status === '멈춤' ? '멈춤 풀기' : '멈춤'), tab('code', '코드'),
+      kids.push(el('div', { class: 'aa-acts' }, tab('rename', '이름 고치기'), tab('state', c.status === '멈춤' ? '멈춤 풀기' : '멈춤'), tab('code', '코드'), 'plan' in c ? tab('plan', '이용 단계') : null,
         tab('invite', c.has_admin ? '관리자 초대 링크' : '첫 관리자 초대 링크')));
       if (kind === 'rename') kids.push(renamePanel(c));
       else if (kind === 'state') kids.push(statePanel(c));
       else if (kind === 'code') kids.push(codePanel(c));
+      else if (kind === 'plan' && 'plan' in c) kids.push(planPanel(c));
       else if (kind === 'invite') kids.push(invitePanel(c));
       return el('div', { class: 'card aa-card' + (c.status === '멈춤' ? ' stopped' : ''), 'data-id': c.id }, ...kids);
     }
