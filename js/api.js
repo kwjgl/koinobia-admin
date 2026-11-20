@@ -168,7 +168,11 @@
       newReturning: a => rpc('admin_usage_new_returning', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'week' }),
       // 핵심 지표판·오늘 이상 신호(040). 서버 SQL 040이 없으면 code:'sql'로 실패한다
       kpi: a => rpc('admin_usage_kpi', { p_app: a.app || null, p_days: a.days || 7 }),
-      alerts: () => rpc('admin_usage_alerts')
+      alerts: () => rpc('admin_usage_alerts'),
+      // 기능과 다시 오기·묶음 비교·출시 표시(040). 묶음 p_by는 device·standalone·ver
+      featureReturn: a => rpc('admin_usage_feature_return', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null }),
+      segments: a => rpc('admin_usage_segments', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_by: a.by || 'device' }),
+      releases: a => rpc('admin_usage_releases', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null })
     }
   };
   window.api = api;

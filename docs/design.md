@@ -44,14 +44,16 @@
 | 오늘 | `admin_today`(036) |
 | 교회 신청 | `church_apply_admin_list`, `church_apply_make`, `church_apply_reject`(035) |
 | 교회·스위치 | `admin_church_list`, `admin_church_create`, `admin_church_rename`, `admin_church_state`, `admin_church_code`, `admin_church_invite`, `admin_setting_list`, `admin_setting_set`, `admin_log_list`(036, 스위치 둘 함수는 039에서 디다코 공동체 키를 더함) |
-| 이용 통계 | `admin_usage_active`, `_signups`, `_retention`, `_features`, `_funnel`, `_heatmap`, `_devices`, `_cross_app`, `_dormant`(006), `admin_usage_stickiness`, `_frequency`, `_duration`, `_new_returning`(037), `admin_usage_kpi`, `_alerts`(040, 이 PR 몫. 나머지 040 함수는 이어서) |
+| 이용 통계 | `admin_usage_active`, `_signups`, `_retention`, `_features`, `_funnel`, `_heatmap`, `_devices`, `_cross_app`, `_dormant`(006), `admin_usage_stickiness`, `_frequency`, `_duration`, `_new_returning`(037), `admin_usage_kpi`, `_alerts`, `_feature_return`, `_segments`, `_releases`(040) |
 | 의견함 | `admin_feedback_list`, `admin_feedback_mark_read`(006) |
 | 공동체 | `admin_community_health`, `admin_community_lookup`, `admin_community_close`(005·006), `admin_community_reports`(036) |
 | 저장 공간 | `admin_db_size`(006) |
 
-- 036·037이 서버에 아직 없으면 해당 메뉴는 "서버 SQL이 아직 없어요"를 보여 준다. 040이 없으면 핵심 지표 카드와 오늘의 이상 신호는 빨간 오류 없이 "서버 040을 넣으면 보여요" 한 줄만 보인다.
+- 036·037이 서버에 아직 없으면 해당 메뉴는 "서버 SQL이 아직 없어요"를 보여 준다. 040이 없으면 핵심 지표 카드, 오늘의 이상 신호, 기능과 다시 오기, 묶음 비교는 빨간 오류 없이 "서버 040을 넣으면 보여요" 한 줄만 보인다(한눈에 탭 '활동한 사람' 그래프의 출시 표시는 조용히 빠진다).
+- 그래프마다 '표 CSV(운영용)' 단추가 있다(`js/csv.js`). UTF-8 BOM, `#` 머리말(표·앱·기간·내보낸 날·지표 정의 판 m1·운영용 안내), `= + - @`로 시작하는 글자 칸은 앞에 `'`를 붙인다. 파일은 화면에 보이는 표와 같은 값이고 사람·교회 번호는 들어 있지 않다. 새 서버 호출·외부 주소가 없어 CSP는 그대로다.
 
 ## 5. 결정 기록
+- **2026-11-20 기능과 다시 오기·묶음 비교·출시 표시·그래프별 CSV(서버 040).** 다시 오는 사람 탭에 '기능과 다시 오기'(기능을 쓴 주와 안 쓴 주의 다음 주 다시 온 비율을 ○→●와 차이 95% 구간으로 보이는 아령 그래프, 핵심 행동 줄은 맨 위, 보정 차이 순 기본)를, 기기·앱 탭에 '묶음 비교'(기기·홈 화면 앱·앱 판 × 다시 온 비율·핵심 행동 비율·한 주에 연 날, 전체 기준 점선, 주별 구성)를 더하고, 한눈에 탭 '활동한 사람' 꺾은선에 새 판이 처음 나타난 날을 점선(사람 2명 이상인 판만)으로 붙인다. 표본이 적은 줄(사람-주 30 미만 등)은 회색과 '판단하기 일러요'로 알리고, 도움말에 '다시 오게 만든다는 뜻이 아니에요'와 '같은 사람이 여러 주에 들어가요'를 적는다. 이유: 어떤 기능과 환경이 다시 오는 습관과 함께 가는지 보되 인과로 읽지 않게 하려는 것이다. 순위가 아니라 기능끼리의 차이이고 교회·사람 단위는 없다. 서버 `admin_usage_feature_return`은 오류 종류를 빼서 종류 선택은 행동·화면 둘뿐이다. 모든 그래프 옆에 '표 CSV(운영용)'를 두었다(맨 위 `#` 머리말에 기간·앱·지표 정의 판, 수식 주입 방지, 사람·교회 번호 없음).
 - **2026-11-09 관리 페이지를 새 저장소에 따로 둔다.** 이유: 코이데 화면 파일이 커서 관리 화면을 고칠 때마다 코이데 전체·캐시 번호·배포를 건드려야 하고, 다른 주소에 두면 앱 관리자 로그인이 일반 앱 화면과 섞이지 않는다.
 - **2026-11-09 서버는 지금 기본 서버를 그대로 쓴다(새 서버 없음).** 이유: 비밀 열쇠가 있는 곳을 늘리지 않고, 사용자가 할 서버 일을 줄인다. (2026-11-19에 바뀜: 아래 줄)
 - **2026-11-09 화면은 늘 검은 색으로 고정한다.** 이유: 사용자가 정했다. 코이데 먹색 어두운 값을 쓰고 밝은 모드는 두지 않는다.
