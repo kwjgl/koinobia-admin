@@ -87,9 +87,14 @@
     let body;
     paint(el('div', null, menu(cur), loading()));
     if (cur === 'today') {
-      try { S.today = await api.today(); } catch (e) { return my === S.seq && fail(e); }
+      let al = null;
+      try {
+        // 이상 신호(040)는 못 받아도 오늘 화면은 그대로 그린다
+        const r = await Promise.all([api.today(), api.usage.alerts().then(x => x, e => (e && e.code === 'sql' ? 'sql' : null))]);
+        S.today = r[0]; al = r[1];
+      } catch (e) { return my === S.seq && fail(e); }
       if (my !== S.seq) return;
-      body = Views.today.render(S.today);
+      body = Views.today.render(S.today, al);
     } else if (cur === 'apply') {
       let list;
       try {

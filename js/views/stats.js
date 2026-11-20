@@ -33,6 +33,10 @@
   const get37 = (name, args) => get(name, args).catch(e => {
     throw e && e.code === 'sql' ? { code: 'sql', message: '서버 SQL 037이 아직 없어요. 037을 Supabase에 넣은 뒤 다시 불러와 주세요.' } : e;
   });
+  // 040(핵심 지표·이상 신호) 함수가 서버에 아직 없으면 그 카드에만 차분한 안내를 보인다(오류 빨간 글이 아니다)
+  const get40 = (name, args) => get(name, args).catch(e => {
+    throw e && e.code === 'sql' ? { code: 'sql40', message: '서버 040을 넣으면 보여요.' } : e;
+  });
   const secText = v => v == null ? null : v < 60 ? v + '초' : Math.floor(v / 60) + '분' + (v % 60 ? ' ' + (v % 60) + '초' : '');
   const appName = a => APP_NAME[a] || a || '';
   const dash = x => x == null ? C.mk() : x;
@@ -51,7 +55,7 @@
       body.replaceChildren(n);
     }, e => {
       if (token !== S.seq) return;
-      body.replaceChildren(el('p', { class: 'aa-err' }, (e && e.message) || '불러오지 못했어요.'));
+      body.replaceChildren(e && e.code === 'sql40' ? el('p', { class: 'hint' }, e.message) : el('p', { class: 'aa-err' }, (e && e.message) || '불러오지 못했어요.'));
     });
     return c;
   }
@@ -64,12 +68,107 @@
   const note = t => el('p', { class: 'hint' }, t);
   const nothing = t => el('p', { class: 'msg us-empty' }, t);
 
+
+  // ---- 핵심 지표판 ----
+  const ROLE_NAME = { pray: '기도했어요 누름', finish: '기도하기 마침', answer: '대답 남김', keep: '남기기', reflect: '돌아보기', meditate: '묵상 마침' };
+  const AREA_NAME = { note: '노트', community: '공동체', church: '교회' };
+  const dnum = o => (o && !o.small && o.n != null && Number.isFinite(Number(o.n))) ? Number(o.n) : null;
+  const drate = o => (o && !o.small && o.r != null && Number.isFinite(Number(o.r))) ? Number(o.r) : null;
+  const shortDate = d => { const m = /^\d{4}-(\d{2})-(\d{2})/.exec(d || ''); return m ? Number(m[1]) + '월 ' + Number(m[2]) + '일' : ''; };
+  // 변화 줄: 이전 0이면 "이전 0명"만, 이전이 작으면(10 미만) 사람 수 차이만, 그 밖은 퍼센트. 비율은 %p. 오류(better:'down')는 색 없이 글과 화살표로만 알린다
+  function delta(cur, prev, better, rate) {
+    if (cur == null || prev == null) return null;
+    let text, dir;
+    if (rate) {
+      const d = Math.round((cur - prev) * 1000) / 10;
+      dir = Math.abs(d) < 0.5 ? 0 : d > 0 ? 1 : -1;
+      text = dir === 0 ? '→ 비슷해요' : (d > 0 ? '↑ +' : '↓ ') + C.f1(d) + '%p';
+    } else if (prev === 0) { return { text: '이전 0명', cls: 'flat' }; }
+    else if (prev < 10) {
+      const d = cur - prev; dir = d === 0 ? 0 : d > 0 ? 1 : -1;
+      text = dir === 0 ? '→ 같아요' : (d > 0 ? '↑ +' : '↓ ') + d + '명';
+    } else {
+      const p = (cur - prev) / prev; dir = Math.abs(p) < 0.05 ? 0 : p > 0 ? 1 : -1;
+      text = dir === 0 ? '→ 비슷해요' : (p > 0 ? '↑ ' : '↓ ') + Math.round(Math.abs(p) * 100) + '%';
+    }
+    if (better === 'down' && dir) text += dir > 0 ? ' 늘었어요' : ' 줄었어요';
+    return { text, cls: better === 'down' ? 'neutral' : dir === 0 ? 'flat' : dir > 0 ? 'up' : 'down' };
+  }
+  const TILE = {
+    active: { label: '활동한 사람', help: '그 기간에 한 번이라도 앱을 쓴 사람 수예요.' },
+    core: { label: '핵심 행동을 한 사람', help: '앱마다 정한 핵심 행동(기도했어요, 기도하기 마침, 대답 남기기 등)을 한 번이라도 한 사람 수예요. 영역별 정의는 아래 "영역별로 보기"에 있어요.' },
+    pray_rate: { label: '기도했어요를 누른 비율', help: '코이데를 쓴 사람 중 기도했어요를 한 번이라도 누른 사람의 비율이에요. 분자는 누른 사람, 분모는 코이데를 쓴 사람이에요.' },
+    new: { label: '새로 온 사람', help: '기록에서 처음 나타난 사람 수예요. 오래된 기록은 접혀서 알 수 없을 수 있어요.' },
+    ret28: { label: '4주 안에 다시 온 비율', help: '처음 온 사람 중 4주 안에 다시 온 사람의 비율이에요. 4주가 지나야 알 수 있어서 28일 늦게 반영돼요.' },
+    err: { label: '오류가 난 사람', help: '오류를 한 번이라도 겪은 사람 수예요. 늘어난 것이 나쁘다고 단정하지 않아서 색 없이 보여요.' }
+  };
+  function kpiTile(k, d) {
+    const t = TILE[k.key] || { label: k.key, help: '' }, rate = k.key === 'pray_rate' || k.key === 'ret28';
+    const cur = rate ? drate(k.cur) : dnum(k.cur), prev = rate ? drate(k.prev) : dnum(k.prev);
+    const sp = (k.spark || []).map(x => rate ? (drate(x) == null ? null : Math.round(drate(x) * 1000) / 10) : dnum(x));
+    let value = cur == null ? '—' : rate ? C.pct(cur) : C.fmtN(cur) + '명', sub = '', dl = delta(cur, prev, k.better, rate);
+    if (k.limited === 'floor') { value = '—'; sub = '오래된 기록이 접혀서 알 수 없어요'; dl = null; }
+    else if (k.key === 'core') {
+      const act = (d.kpis.find(x => x.key === 'active') || {}).cur, a = dnum(act);
+      if (!(d.core_defs || []).length) sub = '핵심 행동이 아직 없어요';
+      else if (cur != null && a) sub = '활동한 사람 중 ' + Math.round(cur / a * 100) + '%';
+    } else if (k.key === 'pray_rate') {
+      const den = dnum(k.cur && k.cur.den), num = dnum(k.cur && k.cur.num);
+      if (!den) { value = '—'; sub = '코이데 기록이 아직 안 들어와요'; dl = null; }
+      else sub = num + '/' + den + ' · 코이데 활동한 사람 중';
+    } else if (k.key === 'ret28') {
+      const den = dnum(k.cur && k.cur.den);
+      if (den != null && den < 5) sub = '표본이 적어요(' + den + '명)';
+    }
+    const lab = t.label + ' ' + value + (dl ? ', ' + dl.text : '') + (sub ? ', ' + sub : '');
+    return el('div', { class: 'gr-kpi' },
+      UI.withInfo(el('span', { class: 'gr-kpi-l' }, t.label), t.help, { label: t.label + ' 도움말' }),
+      el('b', { class: 'gr-kpi-v' + (cur == null ? ' none' : '') }, value),
+      el('span', { class: 'gr-kpi-s' }, sub),
+      el('span', { class: 'gr-delta ' + (dl ? dl.cls : 'flat') }, dl ? dl.text : ''),
+      C.spark(sp, { label: t.label + ' 추이. ' + lab }));
+  }
+  function kpiDraw(d) {
+    const ks = d.kpis || [];
+    const vals = ks.flatMap(k => [k.cur, k.prev]);
+    const anyVal = vals.some(o => (dnum(o) || 0) > 0 || (drate(o) || 0) > 0);
+    if (!anyVal) return nothing('이 기간에는 기록이 없어요.');
+    const out = el('div', null);
+    const cf = d.cur || {}, pf = d.prev || {};
+    out.append(note('어제까지 ' + d.days + '일(' + shortDate(cf.from) + '~' + shortDate(cf.to) + '), 바로 앞 같은 기간(' + shortDate(pf.from) + '~' + shortDate(pf.to) + ')과 비교해요.' + (S.days > 180 ? ' 365일은 180일로 줄여서 보여요.' : '')));
+    out.append(el('div', { class: 'gr-kpis' }, ...ks.map(k => kpiTile(k, d))));
+    const core = ks.find(k => k.key === 'core');
+    if (core && (core.areas || []).length) {
+      const areas = core.areas, nm = a => appName(a.app) + ' · ' + (AREA_NAME[a.area] || a.area);
+      const box = el('div', null);
+      box.append(C.figure({
+        svg: C.barsH(areas.map(a => ({ label: nm(a), v: dnum(a.cur) })), { compact: true, unit: '명', label: '영역별 핵심 행동을 한 사람 가로 막대 그래프. 영역 ' + areas.length + '개' }),
+        table: { head: ['영역', '지금', '이전'], rows: areas.map(a => [nm(a), dnum(a.cur) == null ? null : C.fmtN(dnum(a.cur)), dnum(a.prev) == null ? null : C.fmtN(dnum(a.prev))]) }
+      }));
+      const roles = (core.roles || []).filter(r => (dnum(r.cur) || 0) > 0 || (dnum(r.prev) || 0) > 0);
+      if (roles.length) box.append(C.table(['행동', '지금', '이전'], roles.map(r => [ROLE_NAME[r.role] || r.role, dnum(r.cur) == null ? null : C.fmtN(dnum(r.cur)), dnum(r.prev) == null ? null : C.fmtN(dnum(r.prev))])));
+      out.append(el('details', { class: 'us-det' }, el('summary', null, '영역별로 보기'), note('한 사람이 여러 영역을 하면 각각에 들어가요. 그래서 영역 합이 위의 사람 수보다 클 수 있어요.'), box));
+    }
+    const fv = (k, o) => { const r = k.key === 'pray_rate' || k.key === 'ret28', v = r ? drate(o) : dnum(o); return v == null ? null : r ? C.pct(v) : C.fmtN(v) + '명'; };
+    out.append(el('details', { class: 'us-det' }, el('summary', null, '표로 보기'), C.table(['지표', '지금', '이전', '변화'], ks.map(k => {
+      const rate = k.key === 'pray_rate' || k.key === 'ret28', dl = k.limited === 'floor' ? null : delta(rate ? drate(k.cur) : dnum(k.cur), rate ? drate(k.prev) : dnum(k.prev), k.better, rate);
+      return [(TILE[k.key] || { label: k.key }).label, fv(k, k.cur), fv(k, k.prev), dl ? dl.text : '—'];
+    }))));
+    return out;
+  }
+  function kpiCard(tk) {
+    const days = Math.min(S.days, 180);
+    return card('핵심 지표', '활동한 사람, 핵심 행동, 기도했어요 비율, 새로 온 사람, 4주 안에 다시 온 비율, 오류를 한눈에 봐요. 어제까지 고른 기간과 바로 앞 같은 기간을 비교하고, 작은 선은 그 기간을 거꾸로 이어 본 추이예요(달력 주가 아니라 어제부터 7일씩). 4주 지표는 28일 늦게 반영돼요. 365일은 180일로 줄여요.', null,
+      () => get40('kpi', { app: S.app, days }), kpiDraw, tk);
+  }
+
   // ---- 한눈에 ----
   function glance(tk) {
     const r = range(), g = S.days > 90 && S.grain === 'day' ? 'week' : S.grain;
     const a = { app: S.app, from: r.from, to: r.to, grain: g };
     const sg = S.days <= 90 ? 'week' : 'month';
     return [
+      kpiCard(tk),
       card('활동한 사람', '그 기간에 한 번이라도 앱을 쓴 사람 수예요.',
         tools(select('단위', [['day', '하루'], ['week', '한 주'], ['month', '한 달']], g, v => { S.grain = v; panel(); })),
         () => get('active', a),
@@ -437,7 +536,18 @@
     return box;
   }
 
+  // 오늘 화면 이상 신호 링크(#/usage?tab=time&app=didako)를 읽는다. 허용된 값만 쓰고 주소는 깨끗이 되돌린다
+  function fromHash() {
+    const m = /^#\/usage\?(.*)$/.exec(location.hash);
+    if (!m) return;
+    const q = new URLSearchParams(m[1]), t = q.get('tab'), a = q.get('app');
+    if (TABS.some(x => x[0] === t)) S.tab = t;
+    if (a !== null && APPS.some(x => x[0] === a)) S.app = a;
+    try { history.replaceState(null, '', location.pathname + location.search + '#/usage'); } catch (e) { /* 주소만 못 지운다 */ }
+  }
+
   function render() {
+    fromHash();
     S.seq++;
     panelEl = el('div', { id: 'us-panel', role: 'tabpanel', 'aria-labelledby': 'us-tab-' + S.tab });
     const tabs = el('div', { class: 'us-tabs', role: 'tablist', 'aria-label': '이용 통계 탭' }, ...TABS.map(([k, name]) =>

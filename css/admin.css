@@ -229,6 +229,23 @@ a.td-row > :first-child { flex: 1 1 auto; }
 .gr-tiles dd { margin: .1em 0 0; font-family: var(--f-display); font-size: 1.35em; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gr-tiles dd.mask { font-family: var(--f-body); font-size: .85em; font-weight: 500; color: var(--ink-2); }
 .gr-tiles dd.note { font-family: var(--f-body); font-size: .72em; font-weight: 400; color: var(--ink-2); }
+/* 핵심 지표판 */
+.gr-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: .8em 0 0; }
+@media (min-width: 700px) { .gr-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.gr-kpi { background: var(--surface-2); border-radius: 12px; padding: .6em .7em; min-width: 0; display: flex; flex-direction: column; gap: .1em; }
+.gr-kpi-l { font-size: .75em; color: var(--ink-2); }
+.gr-kpi-v { font-family: var(--f-display); font-size: 1.5em; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.gr-kpi-v.none { color: var(--ink-2); }
+.gr-kpi-s { font-size: .72em; color: var(--ink-2); min-height: 1.4em; }
+.gr-delta { font-size: .78em; font-weight: 600; min-height: 1.5em; }
+.gr-delta.up { color: var(--accent); }
+.gr-delta.down { color: var(--warn); }
+.gr-delta.flat, .gr-delta.neutral { color: var(--ink-2); }
+.gr-spark { display: block; width: 100%; height: 36px; margin-top: .2em; overflow: visible; }
+.gr-sgrid { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+.gr-sline { stroke-width: 1.8; }
+.gr-sdot { stroke: var(--surface-2); }
+a.td-row .td-val.ch-todo { white-space: nowrap; flex: none; }
 td.q1 { background: var(--seq-1); } td.q2 { background: var(--seq-2); } td.q3 { background: var(--seq-3); }
 td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--seq-5); color: #FFFFFF; }
 .us-coh td { border-bottom: 2px solid var(--surface); }

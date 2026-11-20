@@ -3,6 +3,7 @@
    ?demo=empty  신청·의견·신고 없음(교회 목록은 그대로)   ?demo=small  038 이전 서버 모양(공동체가 적어 5명 미만 가림 값이 나옴)
    (이용 통계) ?demo=small 038 이전 서버 모양 확인용(거의 다 가림)  ?demo=empty 기록 없음(가린 값 없음)  ?demo=error 첫 호출 뒤 이용 통계 호출이 계속 실패
    ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
+   (이용 통계 040) ?demo&no040 핵심 지표·이상 신호 함수가 없는 모양  &floor 오래된 기록이 접힌 모양  &alert=none|off|quiet 이상 신호 없음·기록 꺼짐·조용한 앱
    (이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
 (function () {
   const q = new URLSearchParams(location.search);
@@ -152,6 +153,46 @@
         out.push({ step: i + 1, ev, label: it[2], users: u, from_prev: i ? Rr(n / (base * Math.pow(.68, i - 1)), k, n) : null, from_first: i ? Rr(Math.pow(.68, i), k, n) : null });
       });
       return { app: a.p_app, days: a.p_days, steps: out };
+    }
+    if (/^admin_usage_(kpi|alerts)$/.test(name) && q.has('no040')) throw err('PGRST202', 'not found', 404);
+    if (name === 'admin_usage_kpi') {
+      const app = a.p_app || '', days = Math.min(180, Math.max(7, a.p_days || 7)), bk = days <= 14 ? 1 : 7, np = Math.min(Math.ceil(2 * days / bk), 26);
+      const sc = { '': 1, koide: .62, didako: .38, telio: .08 }[app] || 1, last = new Date('2026-11-19T00:00:00Z'), day = x => d2s(new Date(last.getTime() - x * 864e5));
+      const cnt = (key, base) => mode === 'empty' ? 0 : sm ? Math.floor(hh(key) * 5) : Math.round(base * sc * (0.85 + 0.3 * hh(key)));
+      const A = [cnt('ac' + app + days, 38 * Math.sqrt(days)), cnt('ap' + app + days, 34 * Math.sqrt(days))];
+      const part = (f, key) => [Math.round(A[0] * f * (.9 + .2 * hh(key + 'c'))), Math.round(A[1] * f * (.9 + .2 * hh(key + 'p')))];
+      const mk2 = (v) => ({ n: v, small: false });
+      const series = (f, key) => Array.from({ length: np }, (_, i) => ({ p: day((np - 1 - i) * bk), n: mode === 'empty' ? 0 : sm ? (hh(key + i) < .25 ? Math.floor(hh(key + 'v' + i) * 4) : 0) : Math.round(A[0] * f / Math.sqrt(days) * 3 * (.7 + .6 * hh(key + i))) }));
+      const rate = (num, den) => ({ r: den > 0 ? Math.round(num / den * 1e4) / 1e4 : null, small: false, num: mk2(num), den: mk2(den) });
+      const AREAS = [['koide', 'note', .5], ['koide', 'community', .22], ['koide', 'church', .3], ['didako', 'note', .35], ['didako', 'community', .2], ['didako', 'church', .1]].filter(x => !app || x[0] === app);
+      const coreN = part(.55, 'core'), tel = app === 'telio';
+      const prayD = part(.7, 'pd'), prayN = [Math.round(prayD[0] * .46), Math.round(prayD[1] * .41)];
+      const retD = [sm ? 3 : Math.round(A[0] * .3), sm ? 4 : Math.round(A[1] * .3)], retN = [Math.round(retD[0] * .31), Math.round(retD[1] * .27)];
+      const fl = q.has('floor');
+      const ks = [
+        { key: 'active', better: 'up', cur: mk2(A[0]), prev: mk2(A[1]), spark: series(1, 'sa') },
+        { key: 'core', better: 'up', cur: mk2(tel ? 0 : coreN[0]), prev: mk2(tel ? 0 : coreN[1]), spark: series(tel ? 0 : .55, 'sc'),
+          areas: tel ? [] : AREAS.map(x => { const v = part(x[2] * .6, x[0] + x[1]); return { app: x[0], area: x[1], cur: mk2(v[0]), prev: mk2(v[1]) }; }),
+          roles: ['pray', 'finish', 'answer', 'keep', 'reflect', 'meditate'].map((r, i) => { const v = part(.5 - i * .07, 'r' + r); return { role: r, cur: mk2(tel ? 0 : Math.max(0, v[0])), prev: mk2(tel ? 0 : Math.max(0, v[1])) }; }) }
+      ];
+      if (app === '' || app === 'koide') ks.push({ key: 'pray_rate', better: 'up', cur: rate(prayN[0], prayD[0]), prev: rate(prayN[1], prayD[1]),
+        spark: series(1, 'sp').map(x => ({ p: x.p, r: x.n > 0 ? .3 + .3 * hh('pr' + x.p) : null, den: x.n })), den_app: 'koide' });
+      ks.push({ key: 'new', better: 'up', cur: fl ? { n: null, small: false } : mk2(Math.round(A[0] * .2)), prev: fl ? { n: null, small: false } : mk2(Math.round(A[1] * .17)), spark: series(.2, 'sn'), limited: fl ? 'floor' : undefined });
+      ks.push({ key: 'ret28', better: 'up', cur: fl ? { r: null, small: false, num: null, den: null } : rate(retN[0], retD[0]), prev: fl ? { r: null, small: false, num: null, den: null } : rate(retN[1], retD[1]),
+        spark: series(.3, 'sr').map(x => ({ p: x.p, r: x.n > 0 ? .2 + .2 * hh('rr' + x.p) : null, den: x.n })), limited: fl ? 'floor' : undefined });
+      ks.push({ key: 'err', better: 'down', cur: mk2(mode === 'empty' ? 0 : sm ? 1 : Math.round(A[0] * .09)), prev: mk2(mode === 'empty' ? 0 : sm ? 0 : Math.round(A[1] * .06)), spark: series(.08, 'se') });
+      const core_defs = tel ? [] : [['koide', 'note', 'note.prayed', 'pray', '기도했어요 누름(노트)'], ['koide', 'community', 'community.prayed', 'pray', '기도했어요 누름(공동체)'], ['koide', 'church', 'church.prayed', 'pray', '기도했어요 누름(교회)'], ['didako', 'note', 'note.answer', 'answer', '오늘의 질문에 대답 남김']].filter(x => !app || x[0] === app).map(x => ({ app: x[0], area: x[1], ev: x[2], role: x[3], label: x[4] }));
+      return { app: a.p_app || null, days, version: 'm1', as_of: '2026-11-19', cur: { from: day(days - 1), to: day(0) }, prev: { from: day(2 * days - 1), to: day(days) }, core_defs, kpis: ks };
+    }
+    if (name === 'admin_usage_alerts') {
+      const al = q.get('alert'), ap = (k, st, ld, sd) => ({ app: k, last_day: ld, silent_days: sd, recent_med: 12, base_med: 14, status: st });
+      if (al === 'off') return { as_of: '2026-11-19', version: 'm1', track: 'off', apps: [], items: [{ code: 'track_off', level: 'info', app: null, value: { track: 'off' }, base: { want: 'on' }, tab: 'glance' }] };
+      if (mode === 'empty') return { as_of: '2026-11-19', version: 'm1', track: 'on', apps: ['koide', 'didako', 'telio'].map(k => ap(k, 'never', null, null)), items: [] };
+      if (al === 'none' || al === 'quiet') return { as_of: '2026-11-19', version: 'm1', track: 'on', apps: [ap('koide', 'ok', '2026-11-19', 0), ap('didako', al === 'quiet' ? 'quiet' : 'ok', '2026-11-19', 0), ap('telio', 'never', null, null)], items: [] };
+      return { as_of: '2026-11-19', version: 'm1', track: 'on', apps: [ap('koide', 'ok', '2026-11-19', 0), ap('didako', 'silent', '2026-11-15', 4), ap('telio', 'never', null, null)],
+        items: [{ code: 'silent', level: 'warn', app: 'didako', value: { silent_days: 4, last_day: '2026-11-15' }, base: { threshold_days: 3 }, tab: 'time' },
+          { code: 'errors', level: 'warn', app: 'koide', value: { last3: 9 }, base: { base3: 1.5 }, tab: 'feature' },
+          { code: 'drop', level: 'warn', app: 'koide', value: { recent_med: 3 }, base: { base_med: 9 }, tab: 'glance' }] };
     }
     if (/^admin_usage_(stickiness|frequency|duration|new_returning)$/.test(name)) {
       if (q.has('no037')) throw err('PGRST202', 'not found', 404);
