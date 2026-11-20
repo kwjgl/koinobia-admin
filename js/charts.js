@@ -469,7 +469,7 @@
   // ---- 깔때기: steps [{label, users:{n,small}, from_prev, from_first}]. 단계 사이에 빠진 몫은 점선 주의색 칸 + "-32%"로 보인다.
   //      가려진 단계와 그 뒤는 가림 ----
   function funnel(steps) {
-    const RH = 48, BW = W - 150, H = Math.max(RH, steps.length * RH);
+    const RH = 58, BW = W - 150, H = Math.max(RH, steps.length * RH);
     const first = pick(steps[0] && steps[0].users, 'n');
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': '단계별 흐름 깔때기' });
     let masked = false, prevV = null;
@@ -493,7 +493,7 @@
       g.append(txt(end + 6, y + 27, fmtN(v) + '명', 'gr-val'));
       const a = pick(s.from_prev, 'r'), b = pick(s.from_first, 'r');
       if (i > 0) {
-        g.append(txt(0, y + 44, '앞 단계에서 ' + (a == null ? mk() : '-' + pct(1 - a) + ' 이탈') + ' · 첫 단계 대비 ' + (b == null ? mk() : pct(b)), a != null && a < .5 ? 'gr-warn' : 'gr-txt'));
+        g.append(txt(0, y + 46, '앞 단계에서 ' + (a == null ? mk() : '-' + pct(1 - a) + ' 이탈') + ' · 첫 단계 대비 ' + (b == null ? mk() : pct(b)), a != null && a < .5 ? 'gr-warn' : 'gr-txt'));
       }
       prevV = v;
     });
