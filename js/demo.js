@@ -3,7 +3,7 @@
    ?demo=empty  신청·의견·신고 없음(교회 목록은 그대로)   ?demo=small  038 이전 서버 모양(공동체가 적어 5명 미만 가림 값이 나옴)
    (이용 통계) ?demo=small 038 이전 서버 모양 확인용(거의 다 가림)  ?demo=empty 기록 없음(가린 값 없음)  ?demo=error 첫 호출 뒤 이용 통계 호출이 계속 실패
    ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
-   (이용 통계 040) ?demo&no040 핵심 지표·이상 신호 함수가 없는 모양  &floor 오래된 기록이 접힌 모양  &alert=none|off|quiet 이상 신호 없음·기록 꺼짐·조용한 앱
+   (이용 통계 040) ?demo&no040 핵심 지표·이상 신호·기능과 다시 오기·묶음 비교·출시 표시 함수가 없는 모양  &floor 오래된 기록이 접힌 모양  &alert=none|off|quiet 이상 신호 없음·기록 꺼짐·조용한 앱
    (이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
 (function () {
   const q = new URLSearchParams(location.search);
@@ -154,7 +154,7 @@
       });
       return { app: a.p_app, days: a.p_days, steps: out };
     }
-    if (/^admin_usage_(kpi|alerts)$/.test(name) && q.has('no040')) throw err('PGRST202', 'not found', 404);
+    if (/^admin_usage_(kpi|alerts|feature_return|segments|releases)$/.test(name) && q.has('no040')) throw err('PGRST202', 'not found', 404);
     if (name === 'admin_usage_kpi') {
       const app = a.p_app || '', days = Math.min(180, Math.max(7, a.p_days || 7)), bk = days <= 14 ? 1 : 7, np = Math.min(Math.ceil(2 * days / bk), 26);
       const sc = { '': 1, koide: .62, didako: .38, telio: .08 }[app] || 1, last = new Date('2026-11-19T00:00:00Z'), day = x => d2s(new Date(last.getTime() - x * 864e5));
@@ -193,6 +193,51 @@
         items: [{ code: 'silent', level: 'warn', app: 'didako', value: { silent_days: 4, last_day: '2026-11-15' }, base: { threshold_days: 3 }, tab: 'time' },
           { code: 'errors', level: 'warn', app: 'koide', value: { last3: 9 }, base: { base3: 1.5 }, tab: 'feature' },
           { code: 'drop', level: 'warn', app: 'koide', value: { recent_med: 3 }, base: { base_med: 9 }, tab: 'glance' }] };
+    }
+    if (name === 'admin_usage_feature_return') {
+      const app = a.p_app || '', clampR = x => Math.min(.97, Math.max(.03, x));
+      const rt = (r, n, k) => Object.assign(Rr(r, k, n), { num: N(r * n, k + 'n'), den: N(n, k + 'd') });
+      const fr = (ap, ev, label, kind, area, role, key) => {
+        const h = x => hh(key + x), thin = sm ? true : h('t') < .18 || /meet-done|invite-create/.test(ev);
+        const wpw = sm ? 2 + Math.floor(h('w') * 18) : thin ? 14 + Math.floor(h('w') * 12) : 45 + Math.round(h('w') * 260), opw = sm ? 20 : 380 - Math.round(h('o') * 60);
+        const ppl = Math.max(1, Math.round(wpw * (thin ? .6 : .45))), orr = .3 + .12 * h('r'), wrr = clampR(orr + (h('l') - .3) * .5), lift = Math.round((wrr - orr) * 1e4) / 1e4;
+        return { app: ap, ev, label, kind, area, role,
+          with: { pw: N(wpw, key + 'w'), people: N(ppl, key + 'p'), ret: rt(wrr, wpw, key + 'wr') }, without: { pw: N(opw, key + 'o'), ret: rt(orr, opw, key + 'or') },
+          lift: sm ? { v: null, small: true } : { v: lift, small: false }, adj_lift: sm ? { v: null, small: false, strata: 0 } : { v: Math.round(lift * (.3 + .7 * h('a')) * 1e4) / 1e4, small: false, strata: 2 }, thin };
+      };
+      const items = [];
+      if (mode !== 'empty') {
+        const cores = [['_core', '', '핵심 행동', null], ['_core:koide:note', 'koide', '핵심 행동 · 코이데 노트', 'note'], ['_core:koide:church', 'koide', '핵심 행동 · 코이데 교회', 'church'], ['_core:koide:community', 'koide', '핵심 행동 · 코이데 공동체', 'community'], ['_core:didako:note', 'didako', '핵심 행동 · 디다코 노트', 'note']];
+        cores.filter(c => c[0] === '_core' || !app || c[1] === app).forEach(c => items.push(fr(c[1] || (app || null), c[0], c[2], 'core', c[3], null, 'fc' + c[0])));
+        EV.filter(e => e[3] !== 'error' && (!app || e[0] === app)).forEach(e => items.push(fr(e[0], e[1], e[2], e[3], e[1].split('.')[0], null, 'fr' + e[0] + e[1])));
+        // 화면 글자 확인용: HTML이 든 이름과 =로 시작하는 이름(글자로만 보여야 하고 CSV에는 '가 붙어야 한다)
+        items.push(fr(app || 'koide', 'demo.html', '<b>굵게</b> <img src=x> 시험', 'action', 'demo', null, 'fh1'), fr(app || 'koide', 'demo.eq', '=1+1 시험', 'action', 'demo', null, 'fh2'));
+      }
+      const ovn = sm ? 3 : 2400;
+      return { app: a.p_app, from: '2026-08-20', to: '2026-11-19', weeks: 11, min: { pw: 30, people: 10 }, overall: { pw: N(ovn, 'frov'), ret: rt(.41, ovn, 'frov') }, items };
+    }
+    if (name === 'admin_usage_segments') {
+      const by = a.p_by || 'device', app = a.p_app || '';
+      if (!['device', 'standalone', 'ver'].includes(by)) throw bad('묶음은 device, standalone, ver 중 하나예요.');
+      const vers = app === 'koide' ? ['v208', 'v207', 'v206', ''] : app === 'didako' ? ['cm-v64', 'cm-v63', 'cm-v62', ''] : ['v208', 'cm-v64', 'v207', 'cm-v63', 'v206', 'cm-v62', ''];
+      const ks = by === 'device' ? ['phone', 'tablet', 'pc', ''] : by === 'standalone' ? [true, false] : vers;
+      const rt = (r, n, k) => Object.assign(Rr(r, k, n), { num: N(r * n, k + 'n'), den: N(n, k + 'd') });
+      const items = mode === 'empty' ? [] : ks.map((k, i) => {
+        const key = 'sg' + by + String(k), h = x => hh(key + x), thin = sm ? true : (by === 'device' ? i >= 3 : by === 'ver' ? i >= ks.length - 2 : false);
+        const pw = sm ? 2 + Math.floor(h('p') * 15) : thin ? 12 + Math.floor(h('p') * 15) : 160 - i * 12 + Math.round(h('p') * 120), ppl = Math.max(1, Math.round(pw * .5));
+        return { k, people: N(ppl, key + 'p'), ret: rt(.34 + .2 * h('r'), pw, key + 'r'), days_pw: sm ? { v: null, small: true } : { v: Math.round((1.5 + 1.6 * h('d')) * 100) / 100, small: false }, core: rt(.25 + .3 * h('c'), ppl, key + 'c'), thin };
+      });
+      const series = [];
+      if (mode !== 'empty') for (let w = 0; w < 12; w++) { const d = new Date(Date.UTC(2026, 8, 7 + w * 7)); items.forEach(it => series.push({ period: d2s(d), k: it.k, users: N(Math.max(1, (it.thin ? 4 : 30 + 20 * hh('s' + String(it.k) + w)) * (.8 + .4 * hh('w' + w))), 'se' + by + String(it.k) + w) })); }
+      return { by, from: '2026-08-20', to: '2026-11-19', min: { pw: 30 },
+        all: mode === 'empty' ? { people: N(0, 'x'), ret: rt(0, 0, 'ar'), days_pw: { v: null, small: false }, core: rt(0, 0, 'ac') } : { people: N(sm ? 4 : 130, 'allp'), ret: rt(.41, sm ? 9 : 900, 'allr'), days_pw: sm ? { v: null, small: true } : { v: 2.4, small: false }, core: rt(.37, sm ? 9 : 130, 'allc') },
+        items, series };
+    }
+    if (name === 'admin_usage_releases') {
+      const all = [['didako', 'cm-v62', '2026-10-23', 44], ['didako', 'cm-v63', '2026-11-05', 31], ['didako', 'cm-v64', '2026-11-18', 1]];
+      const items = mode === 'empty' ? [] : all.filter(x => (!a.p_app || x[0] === a.p_app) && (!a.p_from || x[2] >= a.p_from) && (!a.p_to || x[2] <= a.p_to))
+        .map(x => ({ app: x[0], ver: x[1], first_day: x[2], last_day: '2026-11-19', people: N(x[3], 'rl' + x[1]) }));
+      return { from: a.p_from, to: a.p_to, items };
     }
     if (/^admin_usage_(stickiness|frequency|duration|new_returning)$/.test(name)) {
       if (q.has('no037')) throw err('PGRST202', 'not found', 404);

@@ -136,6 +136,7 @@
   const used = (svgEl, k) => !svgEl.querySelector ? true : !!svgEl.querySelector(
     k === 'f1' || k === 'bar' ? '.gr-bar, .gr-f1' : /^f[2-5o]$/.test(k) ? '.gr-' + k : /^s[1-5o]$/.test(k) ? '.gr-' + k :
     k === 'hollow' ? '.gr-dot.hollow' : k === 'lost' ? '.gr-lost' : k === 'empty' ? '.gr-cell' : k === 'box' ? '.gr-box' :
+    k === 'mark' ? '.gr-mark' : k === 'thin' ? '.gr-thin' : k === 'dwo' ? '.gr-dwo' : k === 'dwf' ? '.gr-dwf' : k === 'ci' ? '.gr-ci' : k === 'ref' ? '.gr-ref' :
     k === 'med' ? '.gr-med' : k === 'avg' ? '.gr-dot' : k === 'ramp' ? '[class*="gr-fq"]' : '.gr-hmask, .gr-band');
   // 그래프 하나를 감싼다: 그래프(role=img, 요약 aria-label)와 같은 데이터를 표로 바꿔 보는 단추
   function figure(o) {
@@ -154,8 +155,21 @@
     const lg = o.legend && o.legend.filter(([k]) => used(o.svg, k));
     const SERIES = /^(f[1-5o]|s[1-5o]|bar)$/;
     if (lg && lg.length && !(lg.filter(([k]) => SERIES.test(k)).length === 1 && lg.every(([k]) => SERIES.test(k)))) box.append(legend(lg));
-    if (btn) box.append(el('div', { class: 'gr-tools' }, btn));
+    // 표 CSV(운영용) 단추: 보이는 표와 같은 값을 내려받는다. o.csv === false면 끈다. 파일 이름·머리말은 csvCtx(앱·기간)와 o.csv(표 이름)·o.period로 만든다
+    const cb = o.table && o.csv !== false ? el('button', { class: 'link', type: 'button', onclick: () => csvOut(o) }, 'CSV 내려받기(운영용)') : null;
+    if (btn || cb) box.append(el('div', { class: 'gr-tools' }, btn, cb));
     return box;
+  }
+  // 내려받기에 쓰는 앱·기간·판(화면 쪽이 setCsvCtx로 알려 준다)
+  let csvCtx = () => ({});
+  const setCsvCtx = fn => { csvCtx = fn; };
+  function csvOut(o) {
+    const c = csvCtx() || {}, name = typeof o.csv === 'string' && o.csv ? o.csv : String(o.label || '표').slice(0, 24);
+    const period = o.period || (c.from ? c.from + ' ~ ' + c.to + ' (한국 시간)' : '');
+    const head = o.table.head.map(h => h || ' ');
+    Csv.download(['koinobia', 'usage', o.file || 'chart', { '전체': 'all', 코이데: 'koide', 디다코: 'didako', 텔리오: 'telio' }[c.app || '전체'], (c.from || '').replace(/-/g, ''), (c.to || '').replace(/-/g, '')].filter(Boolean).join('-'),
+      ['코이노비아 이용 통계 · 운영용(밖으로 내보내지 마세요)', '표: ' + name, '앱: ' + (c.app || '전체'), '기간: ' + period, '내보낸 날: ' + (c.today || ''), '지표 정의 판: ' + (c.ver || 'm1')],
+      head, o.table.rows.map(r => r.map(x => x == null ? mk() : x)));
   }
   // 범례(색과 이름을 함께): ['f1'~'f5'|'fo' 채움, 's1'~ 선, 'hollow' 진행 중 점, 'lost' 이탈, 'mask' 가림, 'empty' 기록 없음, 'ramp' 진하기 단계, 'box' 상자, 'med' 중앙값, 'avg' 평균, 'bar'=f1]
   function legend(items) {
@@ -167,6 +181,12 @@
       else if (k === 'lost') s.append(svg('rect', { class: 'gr-lost', x: 1, y: 1, width: 16, height: 10 }));
       else if (k === 'ramp') ['q1', 'q2', 'q3', 'q4', 'q5'].forEach((q, i) => s.append(svg('rect', { class: 'gr-f' + q, x: i * 9, y: 1, width: 9, height: 10 })));
       else if (k === 'hollow') s.append(svg('line', { class: 'gr-line gr-s1', x1: 0, y1: 6, x2: 8, y2: 6 }), svg('circle', { class: 'gr-dot hollow gr-s1', cx: 13, cy: 6, r: 3.5 }));
+      else if (k === 'mark') s.append(svg('line', { class: 'gr-mark', x1: 9, y1: 0, x2: 9, y2: 12 }));
+      else if (k === 'ref') s.append(svg('line', { class: 'gr-ref', x1: 9, y1: 0, x2: 9, y2: 12 }));
+      else if (k === 'thin') s.append(svg('rect', { class: 'gr-thin', x: 1, y: 1, width: 16, height: 10, rx: 2 }));
+      else if (k === 'dwo') s.append(svg('circle', { class: 'gr-dwo', cx: 9, cy: 6, r: 4 }));
+      else if (k === 'dwf') s.append(svg('circle', { class: 'gr-dwf', cx: 9, cy: 6, r: 4 }));
+      else if (k === 'ci') s.append(svg('line', { class: 'gr-ci', x1: 1, y1: 6, x2: 17, y2: 6 }));
       else if (k === 'med') s.append(svg('line', { class: 'gr-med', x1: 9, y1: 0, x2: 9, y2: 12 }));
       else if (k === 'avg') s.append(svg('circle', { class: 'gr-dot gr-f1', cx: 9, cy: 6, r: 4 }));
       else if (k === 'box') s.append(svg('rect', { class: 'gr-box gr-f1 gr-s1', x: 1, y: 1, width: 16, height: 10 }));
@@ -181,7 +201,7 @@
   //      숫자 라벨: 마지막 값과 가장 큰 값(점이 8개 이하면 모두) ----
   function line(xs, series, o) {
     o = o || {};
-    const H = o.h || (xs.length <= 8 ? 130 : 150), L = 40, T = 18, B = 24, R = series.length > 1 ? 64 : 16, pw = W - L - R, ph = H - T - B, n = xs.length;
+    const mks = (o.marks || []).filter(m => m.i >= 0 && m.i < xs.length), H = (o.h || (xs.length <= 8 ? 130 : 150)) + (mks.length ? 14 : 0), L = 40, T = mks.length ? 32 : 18, B = 24, R = series.length > 1 ? 64 : 16, pw = W - L - R, ph = H - T - B, n = xs.length;
     const all = series.flatMap(s => s.values).filter(v => v != null);
     const scale = niceScale(Math.max(0, ...all), ph < 90 ? 3 : 5), top = scale.top, fmt = o.fmt || fmtN, part = o.partial || [], unit = o.unit || '';
     const X = i => L + (n === 1 ? pw / 2 : i * pw / (n - 1)), Y = v => T + ph - v / top * ph, base = T + ph;
@@ -194,6 +214,10 @@
         if (masking) g.append(svg('rect', { class: 'gr-band', x: x0, y: T, width: Math.max(1, x1 - x0), height: ph }));
       }
     }
+    // 출시 표시: 점선 세로선과 위쪽 글자(겹치지 않게 두 줄로 번갈아 놓는다). 말풍선에도 덧붙는다
+    mks.forEach((m, k) => {
+      g.append(svg('line', { class: 'gr-mark', x1: X(m.i), x2: X(m.i), y1: T - 6, y2: base }), txt(X(m.i), k % 2 ? 22 : 10, m.text, 'gr-mk', anchorAt(X(m.i), L, W - R)));
+    });
     const step = Math.max(1, Math.ceil(n / 6));
     for (let i = 0; i < n; i += step) g.append(txt(X(i), H - 8, xs[i], 'gr-txt', 'middle'));
     series.forEach((s, si) => {
@@ -232,6 +256,7 @@
         const vs = series.map(s => s.values[i]), seen = vs.filter(v => v != null);
         const lines = [(o.full && o.full[i]) || xs[i]].concat(series.map((s, si) => s.name + ' ' + (vs[si] == null ? mk() : fmt(vs[si]) + unit)));
         if (part[i]) lines.push('진행 중');
+        mks.filter(m => m.i === i).forEach(m => lines.push(m.tip || m.text));
         const x0 = clamp(X(i) - bw / 2, L, W - R), x1 = clamp(X(i) + bw / 2, L, W - R);
         return { ax: X(i), ay: seen.length ? Y(Math.max(...seen)) : base, lines, hl: { x: x0, y: T, w: Math.max(1, x1 - x0), h: ph },
           guide: seen.length ? { x: X(i), y1: T, y2: base } : null, dots: series.map((s, si) => vs[si] == null ? null : { x: X(i), y: Y(vs[si]), cls: 'gr-f' + (si + 1) }).filter(Boolean) };
@@ -361,11 +386,11 @@
   function barsH(rows, o) {
     o = o || {};
     if (o.compact) return barsCompact(rows, o);
-    const RH = 32, BX = 0, BW = W - 110, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
-    const top = Math.max(o.max || 0, ...rows.map(r => r.v).filter(v => v != null)) || 1;
+    const RH = 32, BX = 0, BW = W - 110, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH) + (o.ref != null ? 12 : 0), Y0 = o.ref != null ? 12 : 0;
+    const top = Math.max(o.max || 0, o.ref || 0, ...rows.map(r => r.v).filter(v => v != null)) || 1, thin = o.thin || [];
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '가로 막대 그래프' });
     rows.forEach((r, i) => {
-      const y = i * RH;
+      const y = Y0 + i * RH, tn = thin[i];
       g.append(txt(BX, y + 11, r.label, 'gr-lab'));
       if (r.v == null) {
         if (masking) g.append(svg('rect', { class: 'gr-hmask', x: BX, y: y + 16, width: 56, height: 12 }), txt(BX + 62, y + 26, r.text || MASK + '이라 가렸어요', 'gr-txt'));
@@ -373,8 +398,59 @@
         g.append(txt(BX + 6, y + 26, r.text || fmt(0), 'gr-txt'));   // 0은 막대 없이 연한 글로
       } else {
         const w = r.v / top * BW;
-        g.append(svg('rect', { class: 'gr-bar', x: BX, y: y + 16, width: Math.max(w, r.v > 0 ? 1 : 0), height: 12, rx: 4 }), txt(BX + w + 6, y + 26, r.text || fmt(r.v), 'gr-val'));
+        g.append(svg('rect', { class: 'gr-bar' + (tn ? ' gr-thin' : ''), x: BX, y: y + 16, width: Math.max(w, r.v > 0 ? 1 : 0), height: 12, rx: 4 }), txt(BX + w + 6, y + 26, r.text || fmt(r.v), tn ? 'gr-txt' : 'gr-val'));
       }
+    });
+    // 전체 기준선(점선 세로선): 같은 정의로 센 전체 값
+    if (o.ref != null) {
+      const rx = o.ref / top * BW;
+      g.append(svg('line', { class: 'gr-ref', x1: rx, x2: rx, y1: Y0 - 2, y2: H }), txt(rx, 9, o.refLabel || '전체', 'gr-txt', anchorAt(rx, 0, W)));
+    }
+    // 줄마다 tip(글 배열)이 있으면 마우스 올림·탭·방향키로 읽는 말풍선을 붙인다
+    if (rows.some(r => r.tip)) tip(g, H, {
+      rect: { x: 0, y: Y0, w: W, h: rows.length * RH }, n: rows.length, at: (x, y) => clamp(Math.floor((y - Y0) / RH), 0, rows.length - 1),
+      view: i => ({ ax: Math.min(W - 20, BX + Math.max(40, (rows[i].v || 0) / top * BW)), ay: Y0 + i * RH + 20, lines: rows[i].tip || [rows[i].label], hl: { x: 0, y: Y0 + i * RH, w: W, h: RH } })
+    });
+    return g;
+  }
+
+  // ---- 차이의 95% 구간(Newcombe 점수 방법): 두 비율 p1(n1)·p2(n2)의 차 p1-p2. [하한, 상한](비율 차). 같은 사람이 여러 주에 들어가 독립이 아니라서 실제보다 좁게 나올 수 있다 ----
+  function diffCI(p1, n1, p2, n2) {
+    const z = 1.96, wil = (p, n) => {
+      const d = 1 + z * z / n, c = p + z * z / (2 * n), r = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n));
+      return [(c - r) / d, (c + r) / d];
+    };
+    if (!(n1 > 0 && n2 > 0)) return null;
+    const [l1, u1] = wil(p1, n1), [l2, u2] = wil(p2, n2), d = p1 - p2;
+    return [d - Math.sqrt((p1 - l1) ** 2 + (u2 - p2) ** 2), d + Math.sqrt((u1 - p1) ** 2 + (p2 - l2) ** 2)];
+  }
+
+  // ---- 아령 그래프(안 한 때 ○ → 한 때 ●): rows [{label, a(안 한 때 비율 0~1)|null, b(한 때 비율)|null, text(오른쪽 글), note(아래 작은 글), thin, ci:[lo,hi]|null, tip:[글…]}].
+  //      thin(표본 적음) 줄은 회색으로 그리고 아래에 note를 적는다. 가는 선은 차이의 95% 구간(점 ●을 기준으로 안 한 때 위치 + 구간). 가로 눈금은 0~100%의 정수 눈금.
+  function dumbbell(rows, o) {
+    o = o || {};
+    const L = 8, R = 8, pw = W - L - R, AX = 16, ys = [], X = v => L + clamp(v, 0, 1) * pw;
+    let acc = AX;
+    rows.forEach(r => { ys.push(acc); acc += r.note ? 56 : 44; });
+    const H = Math.max(acc, AX + 44) + 4;
+    const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '아령 그래프' });
+    [0, .25, .5, .75, 1].forEach(t => g.append(svg('line', { class: 'gr-grid', x1: X(t), x2: X(t), y1: AX - 4, y2: H - 4 }), txt(X(t), 10, Math.round(t * 100) + '%', 'gr-txt', t === 0 ? 'start' : t === 1 ? 'end' : 'middle')));
+    rows.forEach((r, i) => {
+      const y = ys[i], cy = y + 28, tn = !!r.thin, ok = r.a != null && r.b != null;
+      if (i) g.append(svg('line', { class: 'gr-sep', x1: 0, x2: W, y1: y, y2: y }));
+      g.append(txt(0, y + 16, r.label, tn ? 'gr-txt' : 'gr-lab'), txt(W, y + 16, r.text || mk(), tn ? 'gr-txt' : 'gr-val', 'end'));
+      if (!ok) { if (masking) g.append(svg('rect', { class: 'gr-hmask', x: L, y: cy - 6, width: 56, height: 12 })); }
+      else {
+        if (r.ci) g.append(svg('line', { class: 'gr-ci' + (tn ? ' gr-thin' : ''), x1: X(r.a + r.ci[0]), x2: X(r.a + r.ci[1]), y1: cy + 9, y2: cy + 9 }));
+        g.append(svg('line', { class: 'gr-dwl' + (tn ? ' gr-thin' : ''), x1: X(r.a), x2: X(r.b), y1: cy, y2: cy }),
+          svg('circle', { class: 'gr-dwo' + (tn ? ' gr-thin' : ''), cx: X(r.a), cy, r: 5 }), svg('circle', { class: 'gr-dwf' + (tn ? ' gr-thin' : ''), cx: X(r.b), cy, r: 5 }));
+      }
+      if (r.note) g.append(txt(0, y + 52, r.note, 'gr-txt'));
+    });
+    tip(g, H, {
+      rect: { x: 0, y: AX, w: W, h: H - AX }, n: rows.length,
+      at: (x, y) => { let k = 0; ys.forEach((v, i) => { if (y >= v) k = i; }); return k; },
+      view: i => ({ ax: W / 2, ay: ys[i] + 20, lines: rows[i].tip || [rows[i].label], hl: { x: 0, y: ys[i], w: W, h: (ys[i + 1] != null ? ys[i + 1] : H - 4) - ys[i] } })
     });
     return g;
   }
@@ -556,5 +632,5 @@
       t.note ? el('dd', { class: 'note' }, t.note) : null)));
   }
 
-  window.Charts = { spark, setWidth, niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
+  window.Charts = { spark, dumbbell, diffCI, setCsvCtx, setWidth, niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
 })();

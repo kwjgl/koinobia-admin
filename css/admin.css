@@ -302,3 +302,18 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .gr-tipbg { fill: var(--ink); }
 .gr-tipt { fill: var(--on-accent); font-size: 11.5px; }
 .gr-tipt .h { font-weight: 600; }
+/* 기능과 다시 오기(아령)·묶음 비교·출시 표시·표본 적음(회색). 색은 그래프 팔레트와 코이데 변수만 쓴다 */
+.gr-dwl { stroke: var(--chart-1); stroke-opacity: .35; stroke-width: 3; stroke-linecap: round; fill: none; }
+.gr-dwo { fill: var(--surface); stroke: var(--chart-1); stroke-width: 2; }
+.gr-dwf { fill: var(--chart-1); stroke: var(--surface); stroke-width: 1.5; }
+.gr-ci { stroke: var(--ink-2); stroke-width: 1; fill: none; }
+.gr-thin { fill: var(--line-strong); }
+.gr-dwl.gr-thin, .gr-ci.gr-thin { fill: none; stroke: var(--line-strong); stroke-opacity: 1; }
+.gr-dwo.gr-thin { fill: var(--surface); stroke: var(--line-strong); }
+.gr-dwf.gr-thin { fill: var(--line-strong); }
+.gr-mark { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+.gr-mk { fill: var(--ink-2); font-size: 10.5px; }
+.gr-ref { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+.us-chk { display: inline-flex; align-items: center; gap: .4em; min-height: 36px; font-size: .85em; color: var(--ink-2); cursor: pointer; }
+.us-big { font-family: var(--f-display); font-weight: 700; font-size: 1.15em; }
+.gr-tools { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; }
