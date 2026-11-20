@@ -7,10 +7,13 @@
   const APP_NAME = { koide: '코이데', didako: '디다코', telio: '텔리오' };
   const TABS = [['glance', '한눈에'], ['feature', '기능'], ['flow', '흐름'], ['back', '다시 오는 사람'], ['time', '시간'], ['device', '기기·앱']];
   const FLOWS = [
-    { name: '노트 첫 기도', steps: ['note.open', 'note.item-add', 'note.pray-start', 'note.pray-done'], note: '활성화율: 처음 노트를 열고 이 기간 안에 기도하기를 마친 사람의 비율이에요.' },
-    { name: '교회 첫 접속', steps: ['church.step-login', 'church.step-consent', 'church.step-app'], note: '부서·사랑방·가정 화면은 건너뛰는 사람이 있어서 순서 깔때기에서 뺐어요.' },
-    { name: '교회 기도', steps: ['church.open', 'church.item-save', 'church.pray-start', 'church.pray-done'], note: '교회 화면에서 기도제목을 저장하고 기도하기를 마친 흐름이에요.' },
-    { name: '공동체', steps: ['community.list', 'community.create', 'community.invite-create', 'community.first-topic'], note: '공동체를 만들고 초대한 뒤 첫 기도제목을 올린 흐름이에요.' }
+    { app: 'koide', name: '코이데 노트 첫 기도', steps: ['note.open', 'note.item-add', 'note.pray-start', 'note.pray-done'], note: '활성화율: 처음 노트를 열고 이 기간 안에 기도하기를 마친 사람의 비율이에요.' },
+    { app: 'koide', name: '코이데 교회 첫 접속', steps: ['church.step-login', 'church.step-consent', 'church.step-app'], note: '부서·사랑방·가정 화면은 건너뛰는 사람이 있어서 순서 깔때기에서 뺐어요.' },
+    { app: 'koide', name: '코이데 교회 기도', steps: ['church.open', 'church.item-save', 'church.pray-start', 'church.pray-done'], note: '교회 화면에서 기도제목을 저장하고 기도하기를 마친 흐름이에요.' },
+    { app: 'koide', name: '코이데 공동체', steps: ['community.list', 'community.create', 'community.invite-create', 'community.first-topic'], note: '공동체를 만들고 초대한 뒤 첫 기도제목을 올린 흐름이에요.' },
+    { app: 'didako', name: '디다코 노트', steps: ['note.open', 'note.answer'], note: '노트를 열고 오늘의 질문에 대답을 남긴 흐름이에요.' },
+    { app: 'didako', name: '디다코 공동체', steps: ['cm.open', 'cm.keep-sentence', 'cm.reflect'], note: '공동체를 열고 오늘 남길 한 문장을 쓴 뒤 돌아보기까지 남긴 흐름이에요.' },
+    { app: 'didako', name: '디다코 교회', steps: ['church.open', 'church.keep-sentence', 'church.reflect'], note: '교회를 열고 오늘 남길 한 문장을 쓴 뒤 돌아보기까지 남긴 흐름이에요.' }
   ];
   const S = { app: '', days: 30, tab: 'glance', grain: 'day', nrGrain: 'week', kind: '', months: 6, flow: 0, fdays: 7, custom: ['', '', '', '', '', '', '', ''], customGo: null, cross: '', seq: 0 };
   const cache = new Map();
@@ -170,21 +173,30 @@
       return { label: i.label, v, text: v == null ? null : key === 'reach' ? C.pct(v) + ' · ' + C.fmtN(u) + '명' : C.fmtN(v) + '명' };
     });
     const tbl = items => ({ head: ['기능', '종류', '사람 수', '전체 중', '사건 수'], rows: items.map(i => [i.label, { screen: '화면', action: '행동', error: '오류' }[i.kind] || i.kind, C.pick(i.users, 'n') == null ? null : C.fmtN(C.pick(i.users, 'n')), C.pick(i.reach, 'r') == null ? null : C.pct(C.pick(i.reach, 'r')), C.pick(i.events, 'n') == null ? null : C.fmtN(C.pick(i.events, 'n'))]) });
-    const bars = (items, key, label, legend) => {
-      if (!items.length) return nothing('이 기간에는 보여 줄 기능이 없어요.');
+    // 0명인 기능은 줄에서 뺀다(안 쓴 기능은 '아무도 안 쓴 기능' 카드에 있다). 가려진 값(null)은 0이 아니라 남긴다. 많이 쓴 기능 순(기능 비교라 괜찮다)
+    const used = (i, key) => { const v = key === 'reach' ? C.pick(i.reach, 'r') : C.pick(i.users, 'n'); return v !== 0; };
+    const byUse = (x, y) => (C.pick(y.reach, 'r') ?? -1) - (C.pick(x.reach, 'r') ?? -1) || (C.pick(y.users, 'n') ?? -1) - (C.pick(x.users, 'n') ?? -1);
+    const one = (items, key, label, legend) => {
       const rr = rows(items, key), seen = rr.filter(x => x.v != null);
+      return C.figure({ svg: C.barsH(rr, { compact: true, label: label + ' 가로 막대 그래프. 기능 ' + items.length + '개, 가려진 기능 ' + (items.length - seen.length) + '개' }), legend: legend || [['f1', key === 'reach' ? '전체 활동자 중 비율' : '사람 수'], ['mask', C.MASK + '이라 가림']], table: tbl(items) });
+    };
+    const bars = (all, key, label, legend, group) => {
+      const items = all.filter(i => used(i, key)).sort(byUse);
+      if (!items.length) return nothing('이 기간에 쓰인 기능이 없어요.');
       const out = el('div', null);
-      if (!seen.length) out.append(note('모두 ' + MASK_NOTE()));
-      out.append(C.figure({ svg: C.barsH(rr, { label: label + ' 가로 막대 그래프. 기능 ' + items.length + '개, 가려진 기능 ' + (items.length - seen.length) + '개' }), legend: legend || [['f1', key === 'reach' ? '전체 활동자 중 비율' : '사람 수'], ['mask', C.MASK + '이라 가림']], table: tbl(items) }));
+      if (!items.some(i => (key === 'reach' ? C.pick(i.reach, 'r') : C.pick(i.users, 'n')) != null)) out.append(note('모두 ' + MASK_NOTE()));
+      const apps = group && !S.app ? [...new Set(items.map(i => i.app))] : null;
+      if (!apps) { out.append(one(items, key, label, legend)); return out; }
+      apps.forEach(ap => out.append(el('h3', { class: 'us-sub' }, appName(ap)), one(items.filter(i => i.app === ap), key, label + ' ' + appName(ap), legend)));
       return out;
     };
     return [
-      card('기능별 사용', '전체 활동자 중 몇 %가 썼는지예요. 코이데 교회 화면은 아래 묶음에 따로 있어요.',
+      card('기능별 사용', '전체 활동자 중 몇 %가 썼는지예요. 한 번도 안 쓴 기능은 아래 카드에 있어요. 코이데 교회 화면은 맨 아래 묶음에 따로 있어요.',
         tools(select('종류', [['', '화면·행동'], ['screen', '화면'], ['action', '행동']], S.kind, v => { S.kind = v; panel(); })),
         load, d => {
           const items = (d.items || []).filter(i => i.kind !== 'error' && !isChurch(i) && (!S.kind || i.kind === S.kind));
           const out = el('div', null, note('이 기간 활동한 사람: ' + (C.pick(d.active, 'n') == null ? C.mk() : C.fmtN(C.pick(d.active, 'n')) + '명')));
-          out.append(bars(items, 'reach', '기능별 사용'));
+          out.append(bars(items, 'reach', '기능별 사용', null, true));
           return out;
         }, tk),
       card('아무도 안 쓴 기능', '이 기간에 한 번도 쓰이지 않은 기능이에요.', null, load, d => {
@@ -213,7 +225,7 @@
         el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(custom), onclick: () => { S.flow = 'custom'; panel(); } }, '직접 고르기'),
         select('며칠', [[7, '7일'], [14, '14일'], [30, '30일'], [90, '90일']], S.fdays, v => { S.fdays = Number(v); panel(); })));
     let steps, name, hint, app;
-    if (!custom) { const f = FLOWS[S.flow]; steps = f.steps; name = f.name; hint = f.note; app = 'koide'; }
+    if (!custom) { const f = FLOWS[S.flow]; steps = f.steps; name = f.name; hint = f.note; app = f.app; }
     else { steps = S.customGo; name = '직접 고른 흐름'; hint = ''; app = fa; }
     const out = [head];
     if (custom) {

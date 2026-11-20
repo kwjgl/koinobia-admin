@@ -107,6 +107,8 @@
     ['koide', 'church.open', '교회 열기', 'screen'], ['koide', 'church.step-login', '교회 로그인 단계', 'screen'], ['koide', 'church.step-consent', '교회 동의 단계', 'screen'], ['koide', 'church.step-app', '교회 앱 안내 단계', 'screen'],
     ['koide', 'church.item-save', '교회 기도제목 저장', 'action'], ['koide', 'church.pray-start', '교회 기도하기 시작', 'action'], ['koide', 'church.pray-done', '교회 기도하기 마침', 'action'], ['koide', 'church.meet-done', '모임 모드 마침', 'action'], ['koide', 'church.error-sync', '교회 동기화 오류', 'error'],
     ['koide', 'community.list', '공동체 목록', 'screen'], ['koide', 'community.create', '공동체 만들기', 'action'], ['koide', 'community.invite-create', '초대 만들기', 'action'], ['koide', 'community.first-topic', '첫 기도제목 올리기', 'action'], ['koide', 'community.error-join', '공동체 들어가기 오류', 'error'],
+    ['didako', 'note.open', '노트 열기', 'screen'], ['didako', 'note.answer', '오늘의 질문에 대답', 'action'], ['didako', 'cm.open', '공동체 열기', 'screen'], ['didako', 'cm.keep-sentence', '오늘 남길 한 문장', 'action'], ['didako', 'cm.reflect', '돌아보기 남기기', 'action'],
+    ['didako', 'church.open', '교회 열기', 'screen'], ['didako', 'church.keep-sentence', '교회 오늘 남길 한 문장', 'action'], ['didako', 'church.reflect', '교회 돌아보기 남기기', 'action'],
     ['didako', 'didako.open', '디다코 열기', 'screen'], ['didako', 'didako.item-add', '기록 추가', 'action'], ['didako', 'didako.error-load', '불러오기 오류', 'error']
   ];
   const usageDemo = (name, a) => {
@@ -144,7 +146,7 @@
     if (name === 'admin_usage_funnel') {
       const st = a.p_steps || [], out = []; let base = 90, first = null, prev = null;
       st.forEach((ev, i) => {
-        const it = EV.find(e => e[1] === ev); if (!it) throw bad('허용 목록에 없는 이름이에요: ' + ev);
+        const it = EV.find(e => e[1] === ev && (!a.p_app || e[0] === a.p_app)) || EV.find(e => e[1] === ev); if (!it) throw bad('허용 목록에 없는 이름이에요: ' + ev);
         const n = mode === 'small' ? 3 : base * Math.pow(.68, i), k = 'fu' + ev, u = N(n, k);
         if (i === 0) first = u.n;
         out.push({ step: i + 1, ev, label: it[2], users: u, from_prev: i ? Rr(n / (base * Math.pow(.68, i - 1)), k, n) : null, from_first: i ? Rr(Math.pow(.68, i), k, n) : null });

@@ -334,9 +334,33 @@
     return g;
   }
 
+  // 촘촘한 가로 막대(기능 목록용): PC는 한 줄(이름 | 막대 | 값), 휴대폰은 이름과 값이 윗줄, 막대가 아랫줄. 줄마다 얇은 구분선.
+  //   0은 막대 없이 그리고, 0보다 크면 아주 작아도 막대가 보이게 최소 폭을 둔다.
+  function barsCompact(rows, o) {
+    const wide = W >= 500, RH = wide ? 28 : 34, LW = wide ? 190 : 0, VW = wide ? 110 : 0, BW = wide ? W - LW - VW - 8 : W, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
+    const top = Math.max(o.max || 0, ...rows.map(r => r.v).filter(v => v != null)) || 1;
+    const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '가로 막대 그래프' });
+    rows.forEach((r, i) => {
+      const y = i * RH, bx = wide ? LW : 0, by = wide ? y + 9 : y + 20;
+      if (i) g.append(svg('line', { class: 'gr-sep', x1: 0, x2: W, y1: y, y2: y }));
+      g.append(txt(0, wide ? y + 18 : y + 14, r.label, 'gr-lab'));
+      if (r.v == null) {
+        const t = masking ? (r.text || MASK + '이라 가렸어요') : '—';
+        if (masking) g.append(svg('rect', { class: 'gr-hmask', x: bx, y: by, width: Math.min(BW, 56), height: 10 }));
+        g.append(txt(W, wide ? y + 18 : y + 14, t, 'gr-val', 'end'));
+        return;
+      }
+      g.append(svg('rect', { class: 'gr-track', x: bx, y: by, width: BW, height: 10, rx: 5 }));
+      if (r.v > 0) g.append(svg('rect', { class: 'gr-bar', x: bx, y: by, width: Math.max(r.v / top * BW, 4), height: 10, rx: 5 }));
+      g.append(txt(W, wide ? y + 18 : y + 14, r.text || fmt(r.v), 'gr-val', 'end'));
+    });
+    return g;
+  }
+
   // ---- 가로 막대(정렬된 비교): rows [{label, v|null, text}] 줄마다 이름 위, 막대 아래. null이면 점선 + "5명 미만" ----
   function barsH(rows, o) {
     o = o || {};
+    if (o.compact) return barsCompact(rows, o);
     const RH = 32, BX = 0, BW = W - 110, fmt = o.fmt || fmtN, H = Math.max(RH, rows.length * RH);
     const top = Math.max(o.max || 0, ...rows.map(r => r.v).filter(v => v != null)) || 1;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '가로 막대 그래프' });
