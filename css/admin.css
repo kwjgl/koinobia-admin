@@ -260,6 +260,8 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .sw-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sw-opt:disabled { cursor: not-allowed; }
 .sw-row > .aa-link { flex-basis: 100%; }
+.sw-row > .aa-link > .msg { margin: 0; }
+.sw-row > .aa-link > .msg + .msg { margin-top: -.3em; }
 @media (max-width: 699px) { .sw-seg { width: 100%; } .sw-opt { flex: 1 1 0; min-width: 0; } }
 
 /* 그래프 값 말풍선(마우스 올림·탭·키보드). 색은 코이데 변수만 쓴다 */
