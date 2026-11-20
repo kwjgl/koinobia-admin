@@ -22,17 +22,21 @@ body { background: var(--page); color: var(--ink); font-family: var(--f-body); f
 button, input, textarea, select { font: inherit; color: inherit; }
 button, a { touch-action: manipulation; }
 .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
-h1 { font-family: var(--f-display); font-size: 1.65em; line-height: 1.3; margin: .3em 0 .2em; }
+h1 { font-family: var(--f-display); font-size: 1.5em; line-height: 1.3; margin: .2em 0 .5em; }
 h2 { font-size: 1.05em; margin: 0; }
-.eyebrow { font-size: .8em; color: var(--ink-2); margin: 1em 0 0; }
+.eyebrow { font-size: .85em; font-weight: 600; color: var(--ink-2); margin: 1.6em 0 .3em; }
 .hint { font-size: .82em; color: var(--ink-2); margin: .4em 0 0; }
 .loading { color: var(--ink-2); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 12px 0; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4em; min-height: 44px; padding: 0 1.1em; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--accent); }
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost:hover { background: var(--accent-soft); filter: none; }
+.btn:active { transform: none; }
 .btn.small { min-height: 36px; padding: 0 .8em; font-size: .88em; border-radius: 10px; }
 .btn.wide { width: 100%; }
-.btn:disabled { opacity: .5; cursor: default; }
+.btn:disabled, .btn.ghost:disabled { opacity: 1; background: var(--surface-2); border-color: var(--line-strong); color: var(--ink-2); cursor: not-allowed; }
+.btn:disabled:hover, .btn.ghost:disabled:hover { filter: none; background: var(--surface-2); }
 .link { background: none; border: 0; padding: .3em .2em; color: var(--accent); font-weight: 600; font-size: .88em; min-height: 36px; cursor: pointer; }
 .field { width: 100%; min-height: 44px; padding: .5em .75em; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); }
 .btn:focus-visible, .link:focus-visible, .field:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -43,8 +47,10 @@ h2 { font-size: 1.05em; margin: 0; }
 .gate .err { margin: 0; font-size: .88em; color: var(--warn); }
 /* 교회 카드와 요약 */
 .aa-sum { color: var(--ink-2); font-size: .9em; margin: 2px 0 14px; }
-.aa-foot { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; border-top: 1px solid var(--line); padding-top: 14px; }
-.aa-foot p { margin: 0; font-size: .78em; color: var(--ink-2); overflow-wrap: anywhere; }
+.aa-foot { margin-top: 22px; display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 14px; font-size: .78em; color: var(--ink-2); }
+.aa-foot-row { display: flex; align-items: center; gap: 4px 14px; }
+.aa-foot p { margin: 0; overflow-wrap: anywhere; }
+.aa-foot .hint { font-size: 1em; margin: 0; }
 .aa-foot .link { margin-left: auto; }
 .toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
 .toast[hidden] { display: none; }
@@ -102,6 +108,7 @@ select.field { appearance: auto; }
 .td-row { display: flex; align-items: center; justify-content: space-between; gap: 1em; margin: 6px 0; color: var(--ink); text-decoration: none; min-height: 52px; }
 a.td-row:hover, a.td-row:focus-visible { border-color: var(--accent); outline: none; }
 .td-label { color: var(--ink-2); }
+a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
 .td-val { font-variant-numeric: tabular-nums; text-align: right; }
 
 /* 교회 신청 화면 */
@@ -212,3 +219,20 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .us-coh td.mask { color: var(--ink-2); font-size: .85em; border: 1px dashed var(--line-strong); }
 .us-tblw .st-tbl td:first-child { white-space: nowrap; }
 .us-sub { margin-top: 1.2em; font-size: .9em; color: var(--ink); }
+
+/* 빈 상태 */
+.us-empty { text-align: center; color: var(--ink-2); padding: 1.2em .5em; border: 1.5px dashed var(--line-strong); border-radius: 12px; background: transparent; }
+
+/* 도움말(? 단추와 팝오버). 위치는 .tip-row 기준 CSS 클래스로만 잡는다(style 속성 없음) */
+.tip-row { position: relative; display: flex; align-items: center; gap: .35em; min-width: 0; max-width: 100%; }
+.tip { display: inline-flex; }
+.tip-btn { position: relative; flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); background: transparent; color: var(--ink-2); font-size: .75rem; font-weight: 700; line-height: 1; cursor: pointer; }
+.tip-btn::after { content: ''; position: absolute; inset: -11px; }
+.tip-btn:hover, .tip-btn[aria-expanded="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.tip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tip-pop { position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; width: max-content; max-width: min(22em, calc(100vw - 64px)); padding: .6em .8em; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 0 0 3px var(--surface-2); font-size: .85rem; font-weight: 400; line-height: 1.55; text-align: left; }
+.tip-pop.up { top: auto; bottom: calc(100% + 6px); }
+.tip-pop[hidden] { display: none; }
+.tip-pop p { margin: 0; }
+.tip-pop p + p { margin-top: .5em; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

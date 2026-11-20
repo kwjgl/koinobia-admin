@@ -16,12 +16,11 @@
     if (pct >= 90) kids.push(el('div', { class: 'card st-note bad' }, el('p', { class: 'msg' }, '한도에 거의 다 왔어요. Supabase Pro나 정리를 알아보세요.')));
     else if (pct >= 70) kids.push(el('div', { class: 'card st-note' }, el('p', { class: 'msg' }, '곧 한도가 다가와요.')));
     const oldest = d.oldest_event ? String(d.oldest_event).slice(0, 10) : '';
-    kids.push(el('p', { class: 'eyebrow' }, '쌓인 이용 기록'));
+    kids.push(UI.withInfo(el('p', { class: 'eyebrow' }, '쌓인 이용 기록'), '오래된 기록은 매달 1일 새벽 3시 10분에 자동으로 정리돼요(pg_cron이 켜져 있을 때).'));
     kids.push(el('div', { class: 'card' },
       el('dl', { class: 'ap-info' },
         el('dt', null, '줄 수'), el('dd', null, num(d.usage_events).toLocaleString('ko-KR') + '줄'),
-        el('dt', null, '가장 오래된 날'), el('dd', null, oldest || '없음')),
-      el('p', { class: 'hint' }, '오래된 기록은 매달 1일 새벽 3시 10분에 자동으로 정리돼요(pg_cron이 켜져 있을 때).')));
+        el('dt', null, '가장 오래된 날'), el('dd', null, oldest || '없음'))));
     kids.push(el('p', { class: 'eyebrow' }, '큰 표 ' + Math.min(10, tables.length) + '개'));
     if (!tables.length) kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, '표 정보가 없어요.')));
     else kids.push(el('div', { class: 'card st-tbl-wrap' }, el('table', { class: 'st-tbl' },

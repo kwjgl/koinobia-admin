@@ -50,20 +50,19 @@
 
     function build() {
       const d = st.data, items = d.items || [];
-      const kids = [el('h1', null, '의견함'),
+      const kids = [UI.withInfo(el('h1', null, '의견함'), '의견에는 이름이 적혀 있을 수 있어서 복사나 저장 기능을 두지 않았어요.'),
         el('p', { class: 'aa-sum' }, '안 읽은 의견 ' + (Number(d.unread) || 0) + '건'),
         el('div', { class: 'aa-acts fb-bar' },
           el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': st.only ? 'true' : 'false', disabled: st.busy,
             onclick: () => { st.only = !st.only; st.limit = STEPS[0]; reload(); } }, '안 읽은 것만 보기'))];
       if (st.err) kids.push(el('p', { class: 'aa-err', role: 'alert' }, st.err));
-      if (!items.length) { kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, st.only ? '안 읽은 의견이 없어요.' : '받은 의견이 없어요.'))); return kids; }
+      if (!items.length) { kids.push(el('div', { class: 'card' }, el('p', { class: 'msg us-empty' }, st.only ? '안 읽은 의견이 없어요.' : '받은 의견이 없어요.'))); return kids; }
       kids.push(el('div', { class: 'aa-grid' }, ...items.map(card)));
       if (items.length >= st.limit) {
         const next = STEPS.find(x => x > st.limit);
         kids.push(next ? el('button', { class: 'btn ghost wide fb-more', type: 'button', disabled: st.busy, onclick: () => { st.limit = next; reload(); } }, '더 보기')
           : el('p', { class: 'hint' }, '가장 최근 ' + st.limit + '건까지 보여 줘요.'));
       }
-      kids.push(el('p', { class: 'hint' }, '의견에는 이름이 적혀 있을 수 있어서 복사나 저장 기능을 두지 않았어요.'));
       return kids;
     }
 
