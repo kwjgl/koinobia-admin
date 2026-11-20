@@ -157,7 +157,8 @@ a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
 .st-tbl tr:last-child td { border-bottom: 0; }
 
 /* 이용 통계(그래프). 색은 위의 그래프 전용 팔레트와 코이데 변수만 쓴다. 스타일 속성은 쓰지 않고 SVG 속성과 이 클래스로만 정한다 */
-.us-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; }
+.us-ctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+.us-ctl .field { flex: 1 1 8em; }
 .us-ctl .field, .us-tools .field { width: auto; min-width: 7em; }
 .us-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: .6em 0; }
 .us-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
@@ -165,7 +166,10 @@ a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
 @media (min-width: 700px) { .us-tabs { display: flex; flex-wrap: wrap; } .us-tab { padding: 0 .9em; white-space: nowrap; } }
 .us-tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .us-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.us-card h2 { margin-bottom: .1em; }
+.us-card { padding: 14px; }
+.us-card h2 { margin: 0; }
+.us-hd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: .4em; }
+.us-hd > .us-tools { margin: 0 0 0 auto; }
 .us-card .msg { margin: 0; }
 .us-card .btn[aria-pressed="true"] { background: var(--accent-soft); }
 .us-tblw { overflow-x: auto; margin-top: .4em; }
@@ -173,12 +177,12 @@ a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
 .us-pick .hint { margin: 0; flex: none; min-width: 3.2em; }
 .us-pick .field { width: 100%; }
 .us-det summary { cursor: pointer; font-weight: 600; min-height: 36px; }
-.gr-view { margin-top: .5em; }
-.gr-svg { display: block; width: 100%; height: auto; }
+.gr-view { margin-top: .5em; max-width: 680px; }
+.gr-svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
 .gr-grid { stroke: var(--line); stroke-width: 1; }
-.gr-txt { fill: var(--ink-2); font-size: 10.5px; }
+.gr-txt { fill: var(--ink-2); font-size: 11px; }
 .gr-lab { fill: var(--ink); font-size: 12px; }
-.gr-val { fill: var(--ink); font-size: 11px; font-weight: 600; }
+.gr-val { fill: var(--ink); font-size: 11.5px; font-weight: 600; }
 .gr-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .gr-area { fill-opacity: .14; stroke: none; }
 .gr-dot { stroke: var(--surface); stroke-width: 1.5; }
@@ -255,3 +259,18 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .sw-opt:disabled { cursor: not-allowed; }
 .sw-row > .aa-link { flex-basis: 100%; }
 @media (max-width: 699px) { .sw-seg { width: 100%; } .sw-opt { flex: 1 1 0; min-width: 0; } }
+
+/* 그래프 값 말풍선(마우스 올림·탭·키보드). 색은 코이데 변수만 쓴다 */
+.gr-hit { fill: transparent; cursor: crosshair; outline: none; }
+.gr-hit:focus-visible { stroke: var(--accent); stroke-width: 2; }
+.gr-hl { fill: var(--ink); fill-opacity: .07; display: none; }
+.gr-hl.on { display: inline; }
+.gr-guide { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 3 2; display: none; }
+.gr-guide.on { display: inline; }
+.gr-pt { stroke: var(--surface); stroke-width: 2; display: none; }
+.gr-pt.on { display: inline; }
+.gr-tip { display: none; pointer-events: none; }
+.gr-tip.on { display: inline; }
+.gr-tipbg { fill: var(--ink); }
+.gr-tipt { fill: var(--on-accent); font-size: 11.5px; }
+.gr-tipt .h { font-weight: 600; }
