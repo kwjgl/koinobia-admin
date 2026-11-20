@@ -45,13 +45,13 @@
     const ap = t.apply || {}, ch = t.churches || {}, db = t.db || {}, sw = t.switches || {};
     const pct = num(db.percent);
     const rows = [];
-    const ending = num(t.plan_ending != null ? t.plan_ending : ch.plan_ending), ended = num(t.plan_ended != null ? t.plan_ended : ch.plan_ended);   // 042 전 서버는 주지 않는다
+    const ending = num(t.plan_ending), ended = num(t.plan_ended);   // 042 전 서버는 주지 않는다
     if (num(ap.pending)) rows.push(row('신청 기다림', num(ap.pending) + '건', 'apply'));
     if (num(t.feedback_unread)) rows.push(row('안 읽은 의견', num(t.feedback_unread) + '건', 'feedback'));
     if (num(t.reports_new)) rows.push(row('새 신고', num(t.reports_new) + '건', 'community'));
     if (num(ch.no_admin)) rows.push(row('활동 관리자가 아직 없는 교회', num(ch.no_admin) + '곳', 'church'));
-    if (ending) rows.push(row('이용 기간이 30일 안에 끝나는 교회 ' + ending + '곳', null, 'church'));
-    if (ended) rows.push(row('이용 기간이 지난 교회 ' + ended + '곳', null, 'church'));
+    if (ending) rows.push(row('이용 기간이 30일 안에 끝나는 교회', ending + '곳', 'church'));
+    if (ended) rows.push(row('이용 기간이 지난 교회', ended + '곳', 'church'));
     if (num(ch.stopped)) rows.push(row('멈춘 교회', num(ch.stopped) + '곳', 'church'));
     const kids = [el('h1', null, '오늘')];
     kids.push(rows.length ? el('div', { class: 'td-rows' }, ...rows) : el('div', { class: 'card' }, el('p', { class: 'msg' }, '오늘 할 일이 없어요.')));
