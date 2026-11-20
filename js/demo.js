@@ -1,7 +1,7 @@
 /* ?demo: 가짜 서버. 화면 확인용이라 이름과 숫자는 모두 지어낸 것이다. 쓰기는 메모리에만 반영한다.
    ?demo  앱 관리자   ?demo=out  로그인 전   ?demo=notadmin  앱 관리자 아님   ?demo=error  첫 호출 실패
-   ?demo=empty  신청·의견·신고 없음(교회 목록은 그대로)   ?demo=small  공동체가 적어 5명 미만 가림 값이 나옴
-   (이용 통계) ?demo=small 거의 다 가림  ?demo=empty 기록 없음  ?demo=error 첫 호출 뒤 이용 통계 호출이 계속 실패
+   ?demo=empty  신청·의견·신고 없음(교회 목록은 그대로)   ?demo=small  038 이전 서버 모양(공동체가 적어 5명 미만 가림 값이 나옴)
+   (이용 통계) ?demo=small 038 이전 서버 모양 확인용(거의 다 가림)  ?demo=empty 기록 없음(가린 값 없음)  ?demo=error 첫 호출 뒤 이용 통계 호출이 계속 실패
    ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
    (이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
 (function () {
@@ -67,7 +67,7 @@
   }).filter(Boolean) });
   const health = () => mode === 'small'
     ? { by_status: { '열림': { n: null, small: true }, '끝맺음': { n: null, small: true }, '닫음': { n: null, small: true } }, avg_members_open: { v: null, small: true }, ending_14d: { n: null, small: true } }
-    : { by_status: { '열림': { n: 12, small: false }, '끝맺음': { n: 6, small: false }, '닫음': { n: 2, small: true } }, avg_members_open: { v: 6.4, small: false }, ending_14d: { n: 5, small: false } };
+    : { by_status: { '열림': { n: 12, small: false }, '끝맺음': { n: 6, small: false }, '닫음': { n: 2, small: false } }, avg_members_open: { v: 6.4, small: false }, ending_14d: { n: 5, small: false } };
   const dbPct = Math.min(100, Math.max(0, Number(q.get('db')) || 50));
   const dbSize = () => ({
     bytes: Math.round(524288000 * dbPct / 100), limit_bytes: 524288000, percent: dbPct, usage_events: mode === 'empty' ? 0 : 18342, oldest_event: mode === 'empty' ? null : '2026-04-21T03:00:00+09:00',
@@ -81,13 +81,14 @@
     db: { bytes: dbSize().bytes, limit_bytes: 524288000, percent: dbPct },
     switches: Object.assign({}, settings)
   });
-  // 이용 통계(모두 지어낸 값). 서버처럼 5명 미만은 {n:null, small:true}로 가린다.
+  // 이용 통계(모두 지어낸 값). 038부터 서버는 가리지 않는다(small:false). ?demo=small만 옛 서버처럼 {n:null, small:true}를 준다.
   // ?demo&no037  행동 지표(037) 함수가 서버에 아직 없는 모양
-  // ?demo 값 있음  ?demo=small 거의 다 가림  ?demo=empty 기록 없음  ?demo=error 이용 통계 호출이 계속 실패(첫 호출 뒤)
+  // ?demo 값 있음(가림 없음)  ?demo=small 038 이전 서버 모양(거의 다 가림)  ?demo=empty 기록 없음(가림 없음)  ?demo=error 이용 통계 호출이 계속 실패(첫 호출 뒤)
   const hh = s => { let x = 2166136261; for (const c of String(s)) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619); } return ((x >>> 0) % 1000) / 1000; };
   const vis = k => mode === 'empty' ? false : mode === 'small' ? hh(k) < 0.12 : true;
-  const N = (n, k) => vis(k) && n >= 5 ? { n: Math.round(n), small: false } : { n: null, small: true };
-  const Rr = (r, k, base) => vis(k) && (base === undefined || base >= 5) ? { r: Math.round(r * 1e4) / 1e4, small: false } : { r: null, small: true };
+  const sm = mode === 'small';
+  const N = (n, k) => mode === 'empty' ? { n: null, small: false } : !sm ? { n: Math.round(n), small: false } : vis(k) && n >= 5 ? { n: Math.round(n), small: false } : { n: null, small: true };
+  const Rr = (r, k, base) => mode === 'empty' ? { r: null, small: false } : !sm ? { r: Math.round(r * 1e4) / 1e4, small: false } : vis(k) && (base === undefined || base >= 5) ? { r: Math.round(r * 1e4) / 1e4, small: false } : { r: null, small: true };
   const d2s = d => d.toISOString().slice(0, 10);
   const periods = (from, to, grain) => {
     const out = []; const d = new Date((from || '2026-10-21') + 'T00:00:00Z'), end = new Date((to || '2026-11-19') + 'T00:00:00Z');
@@ -129,7 +130,7 @@
       const m = Math.min(12, Math.max(1, a.p_months || 6)), out = [];
       for (let i = m - 1; i >= 0; i--) {
         const d = new Date(Date.UTC(2026, 10 - i, 1)), k = 'c' + i, size = 25 + 40 * hh(k);
-        out.push({ cohort: d2s(d), size: N(size, k), w1: Rr(.55 + .15 * hh(k + 1), k, size), w4: i < 1 ? { r: null, small: true } : Rr(.35 + .15 * hh(k + 4), k, size), w12: i < 3 ? { r: null, small: true } : Rr(.18 + .12 * hh(k + 12), k, size) });
+        out.push({ cohort: d2s(d), size: N(size, k), w1: Rr(.55 + .15 * hh(k + 1), k, size), w4: i < 1 ? { r: null, small: sm } : Rr(.35 + .15 * hh(k + 4), k, size), w12: i < 3 ? { r: null, small: sm } : Rr(.18 + .12 * hh(k + 12), k, size) });
       }
       return { app: a.p_app, cohorts: mode === 'empty' ? [] : out };
     }
@@ -156,8 +157,8 @@
     if (name === 'admin_usage_stickiness') {
       const m = Math.min(13, Math.max(1, a.p_months || 6)), out = [];
       for (let i = m - 1; i >= 0; i--) {
-        const d = new Date(Date.UTC(2026, 10 - i, 1)), k = 'sk' + i, mau = 80 + 40 * hh(k), r = (i === 0 ? .16 : .2) + .1 * hh(k + 'r'), show = vis(k);
-        out.push({ month: d2s(d), partial: i === 0, mau: N(mau, k), dau_avg: show ? { v: Math.round(mau * r * 100) / 100, small: false } : { v: null, small: true }, ratio: Rr(r, k, mau) });
+        const d = new Date(Date.UTC(2026, 10 - i, 1)), k = 'sk' + i, mau = 80 + 40 * hh(k), r = (i === 0 ? .16 : .2) + .1 * hh(k + 'r'), show = sm ? vis(k) : mode !== 'empty';
+        out.push({ month: d2s(d), partial: i === 0, mau: N(mau, k), dau_avg: show ? { v: Math.round(mau * r * 100) / 100, small: false } : { v: null, small: sm }, ratio: Rr(r, k, mau) });
       }
       return { app: a.p_app, months: out };
     }

@@ -8,6 +8,10 @@
   const NS = 'http://www.w3.org/2000/svg';
   const W = window.innerWidth >= 700 ? 720 : 360;  // 모든 그래프의 가로 눈금(viewBox). 넓은 화면은 눈금을 넓혀 글씨가 커지지 않게 한다
   const MASK = '5명 미만';
+  // 가림 표시는 서버가 small:true를 준 응답일 때만 켠다(setMasking). 꺼져 있으면 값이 null이어도 "5명 미만"이 아니라 "—"와 빈 자리로 그린다
+  let masking = true;
+  const setMasking = on => { masking = !!on; };
+  const mk = () => masking ? MASK : '—';
   const DASH = '6 3';
 
   function svg(tag, attrs, ...kids) {
@@ -47,7 +51,7 @@
   function table(head, rows) {
     return el('div', { class: 'us-tblw' }, el('table', { class: 'st-tbl' },
       el('thead', null, el('tr', null, ...head.map(h => el('th', null, h)))),
-      el('tbody', null, ...rows.map(r => el('tr', null, ...r.map(c => el('td', null, c == null ? MASK : c)))))));
+      el('tbody', null, ...rows.map(r => el('tr', null, ...r.map(c => el('td', null, c == null ? mk() : c)))))));
   }
   // 그래프 하나를 감싼다: 그래프(role=img, 요약 aria-label)와 같은 데이터를 표로 바꿔 보는 단추
   function figure(o) {
@@ -62,7 +66,9 @@
     } }, '표로 보기') : null;
     box.append(g);
     if (tbl) box.append(tbl);
-    if (o.legend) box.append(legend(o.legend));
+    // 가림 범례는 그래프에 가려진 칸이 실제로 있을 때만 보인다(038 이후 서버는 가리지 않는다)
+    const lg = o.legend && o.legend.filter(([k]) => k !== 'mask' || (o.svg.querySelector && o.svg.querySelector('.gr-hmask, .gr-band')));
+    if (lg && lg.length) box.append(legend(lg));
     if (btn) box.append(el('div', { class: 'gr-tools' }, btn));
     return box;
   }
@@ -100,7 +106,7 @@
     for (let i = 0; i < n; i++) {
       if (series.every(s => s.values[i] == null)) {
         const x0 = Math.max(L, X(i) - bw / 2), x1 = Math.min(W - R, X(i) + bw / 2);
-        g.append(svg('rect', { class: 'gr-band', x: x0, y: T, width: Math.max(1, x1 - x0), height: ph }));
+        if (masking) g.append(svg('rect', { class: 'gr-band', x: x0, y: T, width: Math.max(1, x1 - x0), height: ph }));
       }
     }
     const step = Math.max(1, Math.ceil(n / 6));
@@ -150,8 +156,8 @@
     cols.forEach((c, i) => {
       const cx = L + slot * i + slot / 2, x = cx - bw / 2;
       if (c.v == null) {
-        g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: T + ph - 34, width: Math.max(2, bw - 2), height: 34 }));
-        if (n <= 16) g.append(txt(cx, T + ph - 18, '가림', 'gr-txt', 'middle'));
+        if (masking) g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: T + ph - 34, width: Math.max(2, bw - 2), height: 34 }));
+        if (masking && n <= 16) g.append(txt(cx, T + ph - 18, '가림', 'gr-txt', 'middle'));
       } else {
         const h = c.v / top * ph;
         g.append(svg('rect', { class: 'gr-bar', x, y: T + ph - h, width: bw, height: Math.max(h, c.v > 0 ? 1 : 0), rx: Math.min(4, bw / 2) }));
@@ -181,8 +187,8 @@
         if (h > 0) { g.append(svg('rect', { class: 'gr-seg gr-f' + (j + 1), x, y: y - h, width: bw, height: h })); y -= h; }
       });
       if (masked) {
-        g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: y - MH, width: Math.max(2, bw - 2), height: MH - 2 }));
-        if (slot >= 22) g.append(txt(cx, y - MH - 3, '가림', 'gr-txt', 'middle'));
+        if (masking) g.append(svg('rect', { class: 'gr-hmask', x: x + 1, y: y - MH, width: Math.max(2, bw - 2), height: MH - 2 }));
+        if (masking && slot >= 22) g.append(txt(cx, y - MH - 3, '가림', 'gr-txt', 'middle'));
       } else if (n <= 12 || i === n - 1) g.append(txt(cx, y - 4, fmt(sums[i]), 'gr-val', 'middle'));
       if (i % step === 0) g.append(txt(cx, H - 8, c.label, 'gr-txt', 'middle'));
     });
@@ -199,7 +205,7 @@
       const y = i * RH, sum = r.vs.reduce((a, v) => a + (v || 0), 0), masked = r.vs.some(v => v == null) || !(sum > 0);
       g.append(txt(0, y + 11, r.label, 'gr-lab'));
       if (masked) {
-        g.append(svg('rect', { class: 'gr-hmask', x: 0, y: y + 16, width: 56, height: 14 }), txt(62, y + 27, MASK + '이라 가렸어요', 'gr-txt'));
+        if (masking) g.append(svg('rect', { class: 'gr-hmask', x: 0, y: y + 16, width: 56, height: 14 }), txt(62, y + 27, MASK + '이라 가렸어요', 'gr-txt'));
         return;
       }
       let x = 0; const parts = [];
@@ -224,7 +230,7 @@
       const y = i * RH;
       g.append(txt(BX, y + 11, r.label, 'gr-lab'));
       if (r.v == null) {
-        g.append(svg('rect', { class: 'gr-hmask', x: BX, y: y + 16, width: 56, height: 12 }), txt(BX + 62, y + 26, r.text || MASK + '이라 가렸어요', 'gr-txt'));
+        if (masking) g.append(svg('rect', { class: 'gr-hmask', x: BX, y: y + 16, width: 56, height: 12 }), txt(BX + 62, y + 26, r.text || MASK + '이라 가렸어요', 'gr-txt'));
       } else {
         const w = r.v / top * BW;
         g.append(svg('rect', { class: 'gr-bar', x: BX, y: y + 16, width: Math.max(w, r.v > 0 ? 1 : 0), height: 12, rx: 4 }), txt(BX + w + 6, y + 26, r.text || fmt(r.v), 'gr-val'));
@@ -238,7 +244,7 @@
   function donut(parts, o) {
     o = o || {};
     const unit = o.unit || '명', R = 52, SW = 22, CX = 80, CY = 76, H = Math.max(152, 24 + parts.length * 34);
-    const vis = parts.filter(p => p.v != null), S = vis.reduce((a, p) => a + p.v, 0), nm = parts.length - vis.length;
+    const vis = parts.filter(p => p.v != null), S = vis.reduce((a, p) => a + p.v, 0), nm = masking ? parts.length - vis.length : 0;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '도넛 그래프' });
     const pt = a => [CX + R * Math.sin(a), CY - R * Math.cos(a)];
     const arc = (a0, a1, cls, extra) => {
@@ -247,12 +253,12 @@
     };
     const MASKA = .12;  // 가린 조각 하나가 차지하는 각도(라디안, 고정)
     const avail = Math.PI * 2 - nm * MASKA, gap = parts.length > 1 ? 2 / R : 0;
-    if (S <= 0) g.append(svg('circle', { class: 'gr-hmask', cx: CX, cy: CY, r: R, fill: 'none', 'stroke-width': SW }));
+    if (S <= 0) { if (masking) g.append(svg('circle', { class: 'gr-hmask', cx: CX, cy: CY, r: R, fill: 'none', 'stroke-width': SW })); }
     else if (vis.length === 1 && !nm) g.append(svg('circle', { class: 'gr-s' + (vis[0].cls || '1'), cx: CX, cy: CY, r: R, fill: 'none', 'stroke-width': SW }));
     else {
       let a = 0;
       parts.forEach((p, i) => {
-        const span = p.v == null ? MASKA : p.v / S * avail;
+        const span = p.v == null ? (masking ? MASKA : 0) : p.v / S * avail;
         if (span <= 0) return;
         const a0 = a + (span > gap * 2 ? gap / 2 : 0), a1 = a + span - (span > gap * 2 ? gap / 2 : 0);
         if (p.v == null) arc(a0, a1, 'gr-hmask');
@@ -260,11 +266,11 @@
         a += span;
       });
     }
-    g.append(txt(CX, CY + 5, S > 0 ? fmtN(S) + unit : MASK, S > 0 ? 'gr-big' : 'gr-txt', 'middle'));
+    g.append(txt(CX, CY + 5, S > 0 ? fmtN(S) + unit : mk(), S > 0 ? 'gr-big' : 'gr-txt', 'middle'));
     g.append(txt(CX, CY + 21, nm ? '보이는 합계' : '합계', 'gr-txt', 'middle'));
     parts.forEach((p, i) => {
       const y = 22 + i * 34;
-      if (p.v == null) g.append(svg('rect', { class: 'gr-hmask', x: 168, y, width: 12, height: 12 }), txt(188, y + 10, p.label, 'gr-lab'), txt(188, y + 25, MASK + '이라 가렸어요', 'gr-txt'));
+      if (p.v == null) { if (masking) g.append(svg('rect', { class: 'gr-hmask', x: 168, y, width: 12, height: 12 }), txt(188, y + 10, p.label, 'gr-lab'), txt(188, y + 25, MASK + '이라 가렸어요', 'gr-txt')); else g.append(txt(188, y + 10, p.label, 'gr-lab'), txt(188, y + 25, '—', 'gr-txt')); }
       else g.append(svg('rect', { class: 'gr-f' + (p.cls || String(i + 1)), x: 168, y, width: 12, height: 12, rx: 2 }), txt(188, y + 10, p.label, 'gr-lab'), txt(188, y + 25, fmtN(p.v) + unit + ' · ' + Math.round(p.v / S * 100) + '%', 'gr-val'));
     });
     return g;
@@ -300,7 +306,7 @@
     rows.forEach((r, i) => {
       const y = i * RH;
       g.append(txt(L, y + 12, r.label, 'gr-lab'));
-      if (r.med == null) { g.append(svg('rect', { class: 'gr-hmask', x: L, y: y + 20, width: 56, height: 16 }), txt(L + 62, y + 32, MASK + '이라 가렸어요', 'gr-txt')); return; }
+      if (r.med == null) { if (masking) g.append(svg('rect', { class: 'gr-hmask', x: L, y: y + 20, width: 56, height: 16 }), txt(L + 62, y + 32, MASK + '이라 가렸어요', 'gr-txt')); return; }
       g.append(svg('rect', { class: 'gr-box gr-f1 gr-s1', x: X(r.p25), y: y + 20, width: Math.max(2, X(r.p75) - X(r.p25)), height: 18, rx: 3 }),
         svg('line', { class: 'gr-med', x1: X(r.med), y1: y + 17, x2: X(r.med), y2: y + 41 }));
       if (r.avg != null) g.append(svg('circle', { class: 'gr-dot gr-f1', cx: X(r.avg), cy: y + 29, r: 4.5 }));
@@ -326,7 +332,7 @@
         if (!c) g.append(svg('rect', { class: 'gr-cell', x, y, width: cw - 2, height: ch - 2, rx: 2 }));
         else {
           const v = pick(c.events, 'n');
-          if (v == null) g.append(svg('rect', { class: 'gr-hmask', x, y, width: cw - 2, height: ch - 2, rx: 2 }));
+          if (v == null) g.append(svg('rect', { class: masking ? 'gr-hmask' : 'gr-cell', x, y, width: cw - 2, height: ch - 2, rx: 2 }));
           else g.append(svg('rect', { class: 'gr-f' + lvl(v / max), x, y, width: cw - 2, height: ch - 2, rx: 2 }));
         }
       }
@@ -346,7 +352,8 @@
       if (v == null || first == null) masked = true;
       g.append(txt(0, y + 11, (i + 1) + '. ' + s.label, 'gr-lab'));
       if (masked) {
-        g.append(svg('rect', { class: 'gr-hmask', x: 0, y: y + 16, width: 56, height: 14 }), txt(62, y + 27, MASK + '이라 가렸어요', 'gr-txt'));
+        if (masking) g.append(svg('rect', { class: 'gr-hmask', x: 0, y: y + 16, width: 56, height: 14 }), txt(62, y + 27, MASK + '이라 가렸어요', 'gr-txt'));
+        else g.append(txt(62, y + 27, '—', 'gr-txt'));
         return;
       }
       const w = v / first * BW;
@@ -360,7 +367,7 @@
       g.append(txt(end + 6, y + 27, fmtN(v) + '명', 'gr-val'));
       const a = pick(s.from_prev, 'r'), b = pick(s.from_first, 'r');
       if (i > 0) {
-        g.append(txt(0, y + 46, '앞 단계에서 ' + (a == null ? MASK : '-' + pct(1 - a) + ' 이탈') + ' · 첫 단계 대비 ' + (b == null ? MASK : pct(b)), a != null && a < .5 ? 'gr-warn' : 'gr-txt'));
+        g.append(txt(0, y + 46, '앞 단계에서 ' + (a == null ? mk() : '-' + pct(1 - a) + ' 이탈') + ' · 첫 단계 대비 ' + (b == null ? mk() : pct(b)), a != null && a < .5 ? 'gr-warn' : 'gr-txt'));
       }
       prevV = v;
     });
@@ -372,17 +379,17 @@
     return el('div', { class: 'us-tblw' }, el('table', { class: 'st-tbl us-coh' },
       el('thead', null, el('tr', null, ...head.map(h => el('th', null, h)))),
       el('tbody', null, ...rows.map(r => el('tr', null, el('td', null, r.label),
-        el('td', null, r.size == null ? MASK : fmtN(r.size) + '명'),
-        ...r.rates.map(x => x == null ? el('td', { class: 'mask' }, '가림') : el('td', { class: lvl(x) }, pct(x))))))));
+        el('td', null, r.size == null ? mk() : fmtN(r.size) + '명'),
+        ...r.rates.map(x => x == null ? el('td', { class: masking ? 'mask' : null }, masking ? '가림' : '—') : el('td', { class: lvl(x) }, pct(x))))))));
   }
 
   // ---- 숫자 타일: items [{label, value(숫자·글자·null), note}] null이면 "5명 미만" ----
   function tiles(items) {
     return el('dl', { class: 'gr-tiles' }, ...items.map(t => el('div', null,
       el('dt', null, t.label),
-      el('dd', { class: t.value == null ? 'mask' : null }, t.value == null ? MASK : String(t.value)),
+      el('dd', { class: t.value == null && masking ? 'mask' : null }, t.value == null ? mk() : String(t.value)),
       t.note ? el('dd', { class: 'note' }, t.note) : null)));
   }
 
-  window.Charts = { line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK };
+  window.Charts = { line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
 })();
