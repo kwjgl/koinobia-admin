@@ -173,7 +173,7 @@
         { key: 'active', better: 'up', cur: mk2(A[0]), prev: mk2(A[1]), spark: series(1, 'sa') },
         { key: 'core', better: 'up', cur: mk2(tel ? 0 : coreN[0]), prev: mk2(tel ? 0 : coreN[1]), spark: series(tel ? 0 : .55, 'sc'),
           areas: tel ? [] : AREAS.map(x => { const v = part(x[2] * .6, x[0] + x[1]); return { app: x[0], area: x[1], cur: mk2(v[0]), prev: mk2(v[1]) }; }),
-          roles: ['pray', 'finish', 'answer', 'keep', 'reflect', 'meditate'].map((r, i) => { const v = part(.5 - i * .07, 'r' + r); return { role: r, cur: mk2(tel ? 0 : Math.max(0, v[0])), prev: mk2(tel ? 0 : Math.max(0, v[1])) }; }) }
+          roles: (app === 'koide' ? ['pray', 'finish'] : app === 'didako' || app === 'telio' ? ['answer', 'meditate', 'keep', 'open', 'quiz', 'share'] : ['pray', 'finish', 'answer', 'meditate', 'keep', 'open', 'quiz', 'share']).map((r, i) => { const v = part(.5 - i * .05, 'r' + r); return { role: r, cur: mk2(tel ? 0 : Math.max(0, v[0])), prev: mk2(tel ? 0 : Math.max(0, v[1])) }; }) }
       ];
       if (app === '' || app === 'koide') ks.push({ key: 'pray_rate', better: 'up', cur: rate(prayN[0], prayD[0]), prev: rate(prayN[1], prayD[1]),
         spark: series(1, 'sp').map(x => ({ p: x.p, r: x.n > 0 ? .3 + .3 * hh('pr' + x.p) : null, den: x.n })), den_app: 'koide' });

@@ -70,7 +70,7 @@
 
 
   // ---- 핵심 지표판 ----
-  const ROLE_NAME = { pray: '기도했어요 누름', finish: '기도하기 마침', answer: '대답 남김', keep: '남기기', reflect: '돌아보기', meditate: '묵상 마침' };
+  const ROLE_NAME = { pray: '기도했어요 누름', finish: '기도하기 마침', answer: '대답 남김', meditate: '묵상 마침', keep: '남기기', open: '질문 펴 보기', quiz: '말씀 퀴즈 풀기', share: '나눔하기 마침' };
   const AREA_NAME = { note: '노트', community: '공동체', church: '교회' };
   const dnum = o => (o && !o.small && o.n != null && Number.isFinite(Number(o.n))) ? Number(o.n) : null;
   const drate = o => (o && !o.small && o.r != null && Number.isFinite(Number(o.r))) ? Number(o.r) : null;
@@ -146,11 +146,11 @@
         table: { head: ['영역', '지금', '이전'], rows: areas.map(a => [nm(a), dnum(a.cur) == null ? null : C.fmtN(dnum(a.cur)), dnum(a.prev) == null ? null : C.fmtN(dnum(a.prev))]) }
       }));
       const roles = (core.roles || []).filter(r => (dnum(r.cur) || 0) > 0 || (dnum(r.prev) || 0) > 0);
-      if (roles.length) box.append(C.table(['행동', '지금', '이전'], roles.map(r => [ROLE_NAME[r.role] || r.role, dnum(r.cur) == null ? null : C.fmtN(dnum(r.cur)), dnum(r.prev) == null ? null : C.fmtN(dnum(r.prev))])));
+      if (roles.length) box.append(C.table(['행동', '지금', '이전'], roles.map(r => [r.label || ROLE_NAME[r.role] || ((d.core_defs || []).find(x => x.role === r.role) || {}).label || r.role, dnum(r.cur) == null ? null : C.fmtN(dnum(r.cur)), dnum(r.prev) == null ? null : C.fmtN(dnum(r.prev))])));
       out.append(el('details', { class: 'us-det' }, el('summary', null, '영역별로 보기'), note('한 사람이 여러 영역을 하면 각각에 들어가요. 그래서 영역 합이 위의 사람 수보다 클 수 있어요.'), box));
     }
     const fv = (k, o) => { const r = k.key === 'pray_rate' || k.key === 'ret28', v = r ? drate(o) : dnum(o); return v == null ? null : r ? C.pct(v) : C.fmtN(v) + '명'; };
-    out.append(el('details', { class: 'us-det' }, el('summary', null, '표로 보기'), C.table(['지표', '지금', '이전', '변화'], ks.map(k => {
+    out.append(el('details', { class: 'us-det' }, el('summary', null, '모든 숫자 표로 보기'), C.table(['지표', '지금', '이전', '변화'], ks.map(k => {
       const rate = k.key === 'pray_rate' || k.key === 'ret28', dl = k.limited === 'floor' ? null : delta(rate ? drate(k.cur) : dnum(k.cur), rate ? drate(k.prev) : dnum(k.prev), k.better, rate);
       return [(TILE[k.key] || { label: k.key }).label, fv(k, k.cur), fv(k, k.prev), dl ? dl.text : '—'];
     }))));
