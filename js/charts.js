@@ -156,7 +156,7 @@
     const SERIES = /^(f[1-5o]|s[1-5o]|bar)$/;
     if (lg && lg.length && !(lg.filter(([k]) => SERIES.test(k)).length === 1 && lg.every(([k]) => SERIES.test(k)))) box.append(legend(lg));
     // 표 CSV(운영용) 단추: 보이는 표와 같은 값을 내려받는다. o.csv === false면 끈다. 파일 이름·머리말은 csvCtx(앱·기간)와 o.csv(표 이름)·o.period로 만든다
-    const cb = o.table && o.csv !== false ? el('button', { class: 'link', type: 'button', onclick: () => csvOut(o) }, '표 CSV(운영용)') : null;
+    const cb = o.table && o.csv !== false ? el('button', { class: 'link', type: 'button', onclick: () => csvOut(o) }, 'CSV 내려받기(운영용)') : null;
     if (btn || cb) box.append(el('div', { class: 'gr-tools' }, btn, cb));
     return box;
   }

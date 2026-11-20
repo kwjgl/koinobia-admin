@@ -187,7 +187,7 @@
             legend: [['s1', '활동한 사람'], ['mark', '새 판이 처음 나타난 날(점선)'], ['mask', C.MASK + '이라 가린 기간']],
             table: { head: ['기간', '활동한 사람', '사건 수'], rows: s.map(x => [x.period, C.pick(x.active, 'n') == null ? null : C.fmtN(C.pick(x.active, 'n')), C.pick(x.events, 'n') == null ? null : C.fmtN(C.pick(x.events, 'n'))]) }
           }));
-          if (rel && (!S.app || S.app === 'koide') && !(rel.items || []).some(x => x.app === 'koide')) out.append(note('코이데는 아직 판 번호를 보내지 않아서 코이데 출시 표시는 없어요. 앱이 판 번호를 보내기 시작하면 생겨요.'));
+          if (rel && (!S.app || S.app === 'koide') && !(rel.items || []).some(x => x.app === 'koide')) out.append(note('코이데 판 번호가 아직 들어오지 않았어요.'));
           // 1인당 평균 사건: 사람 수와 사건 수가 둘 다 보이는 가장 가까운 기간만
           let per = null, when = '';
           for (let i = s.length - 1; i >= 0; i--) {

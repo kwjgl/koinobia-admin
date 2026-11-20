@@ -316,3 +316,4 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .gr-ref { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
 .us-chk { display: inline-flex; align-items: center; gap: .4em; min-height: 36px; font-size: .85em; color: var(--ink-2); cursor: pointer; }
 .us-big { font-family: var(--f-display); font-weight: 700; font-size: 1.15em; }
+.gr-tools { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; }
