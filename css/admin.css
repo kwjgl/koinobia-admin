@@ -51,7 +51,7 @@ h2 { font-size: 1.05em; margin: 0; }
 .aa-foot-row { display: flex; align-items: center; gap: 4px 14px; }
 .aa-foot p { margin: 0; overflow-wrap: anywhere; }
 .aa-foot .hint { font-size: 1em; margin: 0; }
-.aa-foot .link { margin-left: auto; }
+.aa-foot .btn { margin-left: auto; font-size: 1.28em; }
 .toast { position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
 .toast[hidden] { display: none; }
 
@@ -177,7 +177,7 @@ a.td-row::after { content: '\203A'; color: var(--ink-2); margin-left: .4em; }
 .us-pick .hint { margin: 0; flex: none; min-width: 3.2em; }
 .us-pick .field { width: 100%; }
 .us-det summary { cursor: pointer; font-weight: 600; min-height: 36px; }
-.gr-view { margin-top: .5em; max-width: 680px; }
+.gr-view { margin-top: .5em; }
 .gr-svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
 .gr-grid { stroke: var(--line); stroke-width: 1; }
 .gr-txt { fill: var(--ink-2); font-size: 11px; }

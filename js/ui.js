@@ -31,7 +31,7 @@
     const btn = el('button', { class: 'tip-btn', type: 'button', 'aria-expanded': 'false', 'aria-controls': id, 'aria-label': o.label || '도움말' }, '?');
     const pop = el('div', { class: 'tip-pop' + (o.up ? ' up' : ''), id, role: 'tooltip', hidden: true }, ...paras.map(p => el('p', null, p)));
     const t = { btn, pop, pinned: false, hover: false };
-    btn.addEventListener('click', () => { t.pinned = !t.pinned; paint(t); });
+    btn.addEventListener('click', () => { if (t.pinned || t.hover) t.pinned = t.hover = false; else t.pinned = true; paint(t); });
     btn.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { t.hover = true; paint(t); } });
     btn.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { t.hover = false; paint(t); } });
     return el('span', { class: 'tip' }, btn, pop);

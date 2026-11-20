@@ -42,6 +42,7 @@
     const c = el('div', { class: 'card us-card' }, el('div', { class: 'us-hd' }, UI.withInfo(el('h2', null, title), hint, { label: title + ' 도움말' }), tools), body);
     load().then(d => {
       if (token !== S.seq) return;
+      C.setWidth(body.clientWidth);
       let n;
       try { C.setMasking(JSON.stringify(d || {}).includes('"small":true')); n = draw(d); } catch (e) { n = el('p', { class: 'aa-err' }, '그래프를 그리지 못했어요.'); console.error('draw', e); }
       body.replaceChildren(n);

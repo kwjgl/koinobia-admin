@@ -6,8 +6,10 @@
 (function () {
   const { el } = UI;
   const NS = 'http://www.w3.org/2000/svg';
-  const W = window.innerWidth >= 700 ? 560 : 360;  // 모든 그래프의 가로 눈금(viewBox). 불러올 때 한 번 정한다. 넓은 화면은 눈금을 넓혀 글씨가 커지지 않게 한다(.gr-view가 최대 폭을 둔다)
-  const MAXBW = W > 400 ? 30 : 24;                  // 막대 최대 폭: 칸이 적어도 막대가 두껍게 늘어나지 않는다
+  // 모든 그래프의 가로 눈금(viewBox). 카드를 그리기 직전에 setWidth(상자 폭)로 정해 눈금이 화면과 거의 1:1이 되게 한다(글씨가 늘어나지 않는다). 폭을 모르면 360/560
+  let W = window.innerWidth >= 700 ? 560 : 360;
+  const setWidth = px => { W = px > 0 ? clamp(Math.round(px), 320, 900) : (window.innerWidth >= 700 ? 560 : 360); };
+  const maxbw = () => W > 400 ? 30 : 24;           // 막대 최대 폭: 칸이 적어도 막대가 두껍게 늘어나지 않는다
   const MASK = '5명 미만';
   // 가림 표시는 서버가 small:true를 준 응답일 때만 켠다(setMasking). 꺼져 있으면 값이 null이어도 "5명 미만"이 아니라 "—"와 빈 자리로 그린다
   let masking = true;
@@ -22,6 +24,7 @@
     return n;
   }
   const txt = (x, y, s, cls, anchor) => svg('text', { x, y, class: cls || 'gr-txt', 'text-anchor': anchor || 'start' }, s);
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const fmtN = v => Number(v).toLocaleString('ko-KR');
   const pct = r => (Math.round(Number(r) * 1000) / 10) + '%';
   const f1 = n => Math.round(n * 10) / 10;
@@ -42,7 +45,6 @@
       if (Math.ceil(m / step) <= N) { const top = Math.ceil(m / step) * step; return { top, ticks: Array.from({ length: top / step + 1 }, (_, i) => i * step) }; }
     }
   }
-  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   // 기간 글자: day 11/19, week 11/17 주, month 26.11
   function plabel(p, grain) {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(p || ''));
@@ -243,7 +245,7 @@
     o = o || {};
     const n = cols.length, H = o.h || (n <= 8 ? 120 : 140), L = 40, T = 14, B = 24, pw = W - L - 8, ph = H - T - B, fmt = o.fmt || fmtN, unit = o.unit || '';
     const scale = niceScale(Math.max(0, ...cols.map(c => c.v).filter(v => v != null)), ph < 90 ? 3 : 5), top = scale.top;
-    const slot = n ? pw / n : pw, bw = Math.min(MAXBW, Math.max(2, slot * .7)), showVal = slot >= 20 && n <= 16;
+    const slot = n ? pw / n : pw, bw = Math.min(maxbw(), Math.max(2, slot * .7)), showVal = slot >= 20 && n <= 16;
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '막대 그래프' });
     gridY(g, L, W - 8, T, ph, scale, fmt);
     const step = Math.max(1, Math.ceil(n / 8));
@@ -278,7 +280,7 @@
     const n = cols.length, H = o.h || (n <= 8 ? 130 : 150), L = 40, T = 22, B = 24, pw = W - L - 8, ph = H - T - B, fmt = o.fmt || fmtN, MH = 16, unit = o.unit || '';
     const sums = cols.map(c => c.vs.reduce((a, v) => a + (v || 0), 0));
     const scale = niceScale(Math.max(0, ...sums), ph < 90 ? 3 : 5), top = scale.top;
-    const slot = n ? pw / n : pw, bw = Math.min(MAXBW, Math.max(3, slot * .7));
+    const slot = n ? pw / n : pw, bw = Math.min(maxbw(), Math.max(3, slot * .7));
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '누적 막대 그래프' });
     gridY(g, L, W - 8, T, ph, scale, fmt);
     const step = Math.max(1, Math.ceil(n / 8));
@@ -311,11 +313,11 @@
   //      한 계열이라도 가려졌으면 그 줄은 점선 칸 + "5명 미만" ----
   function stack100(rows, names, o) {
     o = o || {};
-    const RH = 44, BW = W - 8, H = Math.max(RH, rows.length * RH);
+    const RH = 54, BW = W - 8, H = Math.max(RH, rows.length * RH);
     const g = svg('svg', { class: 'gr-svg', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': o.label || '구성 비율 누적 막대 그래프' });
     rows.forEach((r, i) => {
       const y = i * RH, sum = r.vs.reduce((a, v) => a + (v || 0), 0), masked = r.vs.some(v => v == null) || !(sum > 0);
-      g.append(txt(0, y + 11, r.label, 'gr-lab'));
+      g.append(txt(0, y + 11, r.label, 'gr-txt'));
       if (masked) {
         if (masking) g.append(svg('rect', { class: 'gr-hmask', x: 0, y: y + 16, width: 56, height: 14 }), txt(62, y + 27, MASK + '이라 가렸어요', 'gr-txt'));
         return;
@@ -327,7 +329,7 @@
         x += w;
         if (v > 0) parts.push(names[j] + ' ' + Math.round(v / sum * 100) + '%');
       });
-      g.append(txt(0, y + 41, parts.join(' · '), 'gr-txt'));
+      g.append(txt(0, y + 46, parts.join(' · '), 'gr-txt'));
     });
     return g;
   }
@@ -515,5 +517,5 @@
       t.note ? el('dd', { class: 'note' }, t.note) : null)));
   }
 
-  window.Charts = { niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
+  window.Charts = { setWidth, niceScale, plong, line, barsV, barsStack, stack100, barsH, donut, gauge, boxplot, heat, funnel, cohortTable, tiles, table, figure, legend, pick, isMask, plabel, fmtN, pct, f1, MASK, mk, setMasking, isMasking: () => masking };
 })();
