@@ -32,8 +32,8 @@
     mk('c3', '<i>시험</i> 공간', '테스트', '열림', [{ code: 'TEST1', status: '열림' }], { members: 1, depts: 1, households: 0, linked: 0, admins: 1 }, true, false),
     mk('c4', '새싹교회', '교회', '열림', [{ code: 'SPROUT', status: '열림' }], { members: 0, depts: 1, households: 0, linked: 0, admins: 0 }, false, true)
   ];
-  const settings = { church_open: 'admins', church_apply: 'on', community_open: 'on', usage_track: 'off' };
-  const allowed = { church_open: ['off', 'admins', 'on'], church_apply: ['off', 'admins', 'on'], community_open: ['off', 'admins', 'on'], usage_track: ['on', 'off'] };
+  const settings = { church_open: 'admins', church_apply: 'on', community_open: 'on', usage_track: 'off', didako_community_open: 'admins' };
+  const allowed = { church_open: ['off', 'admins', 'on'], church_apply: ['off', 'admins', 'on'], community_open: ['off', 'admins', 'on'], usage_track: ['on', 'off'], didako_community_open: ['off', 'admins', 'on'] };
   const logs = [{ at: '2026-11-18T09:30:00+09:00', action: 'setting', target: 'church_apply=on' }, { at: '2026-11-17T20:05:00+09:00', action: 'church-create', target: 'c3' }];
   const putLog = (action, target) => { logs.unshift({ at: new Date().toISOString(), action, target }); };
   churches.forEach(c => c.codes.forEach(x => usedCodes.push(x.code)));
