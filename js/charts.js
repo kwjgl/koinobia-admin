@@ -511,7 +511,8 @@
   }
 
   // ---- 상자 그림(분포): rows [{label, p25, med, p75, avg, n}] (같은 단위, 한 축). 상자 25%~75%, 굵은 선 중앙값, 점 평균.
-  //      값 글은 막대 아래에 바로 적는다. 가려진 줄(med==null)은 점선 칸 ----
+  //      값 글은 막대 아래에 바로 적는다. 가려진 줄(med==null)은 점선 칸,
+  //      가리지 않는데 기록이 없는 줄은 '이 기간에는 기록이 없어요'를 적는다 ----
   function boxplot(rows, o) {
     o = o || {};
     const fmt = o.fmt || fmtN, RH = 58, AX = 22, L = 8, R = 16, pw = W - L - R, H = rows.length * RH + AX;
@@ -522,7 +523,7 @@
     rows.forEach((r, i) => {
       const y = i * RH;
       g.append(txt(L, y + 12, r.label, 'gr-lab'));
-      if (r.med == null) { if (masking) g.append(svg('rect', { class: 'gr-hmask', x: L, y: y + 20, width: 56, height: 16 }), txt(L + 62, y + 32, MASK + '이라 가렸어요', 'gr-txt')); return; }
+      if (r.med == null) { if (masking) g.append(svg('rect', { class: 'gr-hmask', x: L, y: y + 20, width: 56, height: 16 }), txt(L + 62, y + 32, MASK + '이라 가렸어요', 'gr-txt')); else g.append(txt(L, y + 32, '이 기간에는 기록이 없어요', 'gr-txt')); return; }
       g.append(svg('rect', { class: 'gr-box gr-f1 gr-s1', x: X(r.p25), y: y + 20, width: Math.max(2, X(r.p75) - X(r.p25)), height: 18, rx: 3 }),
         svg('line', { class: 'gr-med', x1: X(r.med), y1: y + 17, x2: X(r.med), y2: y + 41 }));
       if (r.avg != null) g.append(svg('circle', { class: 'gr-dot gr-f1', cx: X(r.avg), cy: y + 29, r: 4.5 }));
