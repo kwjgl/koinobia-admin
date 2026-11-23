@@ -362,11 +362,14 @@
     }
     if (name === 'admin_usage_duration') {
       const D = [['koide', 'note.pray-done', '기도하기 마침', 48, 240], ['koide', 'church.pray-done', '교회 기도하기 마침', 22, 420], ['koide', 'church.meet-done', '모임 모드 마침', 4, 900]];
+      // 기록이 없는 항목(늘 n=0): 상자 그림에 '이 기간에는 기록이 없어요'가 보이는 경우
+      const none = { app: 'koide', ev: 'group.share-done', label: '공동체 나눔하기 마침', users: { n: 0, small: false }, events: { n: 0, small: false }, median_sec: null, p25_sec: null, p75_sec: null, avg_sec: null, buckets: [] };
+      if (mode === 'empty') none.users = none.events = { n: null, small: false };
       return { from: a.p_from, to: a.p_to, items: D.filter(x => !a.p_app || x[0] === a.p_app).map(x => {
         const k = 'du' + x[1], u = N(x[3], k), ok = !u.small;
         return { app: x[0], ev: x[1], label: x[2], users: u, events: N(x[3] * 2.4, k), median_sec: ok ? x[4] : null, p25_sec: ok ? Math.round(x[4] * .5) : null, p75_sec: ok ? Math.round(x[4] * 1.8) : null, avg_sec: ok ? Math.round(x[4] * 1.2) : null,
           buckets: ['1분 미만', '1~3분', '3~5분', '5~10분', '10분 이상'].map((l, j) => ({ label: l, events: N([x[3] * .3, x[3] * .8, x[3] * .7, x[3] * .4, x[3] * .2][j], k + j) })) };
-      }) };
+      }).concat(!a.p_app || a.p_app === 'koide' ? [none] : []) };
     }
     if (name === 'admin_usage_new_returning') {
       const g = a.p_grain || 'week';
