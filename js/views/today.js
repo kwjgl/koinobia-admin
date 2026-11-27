@@ -41,6 +41,31 @@
     }))];
   }
 
+  // 운영 안내: 자주 하는 일의 순서. 늘 같은 글이라 서버 값은 쓰지 않는다. 처음엔 접혀 있다
+  const GUIDE = [
+    ['새 교회 신청이 왔을 때', 'apply', '교회 신청',
+      ['신청 카드에서 "같은 이름의 신청", "같은 이름의 교회" 표시를 먼저 봐요.', '맞으면 "만들기"에서 코드(영문·숫자·한글 3~30자)와 첫 부서 이름을 적고 확인해요.', '만든 뒤 "안내 문구 복사"로 신청한 분께 연락해요. 그분이 코이데 앱에서 첫 관리자로 시작하기를 누르면 끝이에요.', '거절하면 적은 사유가 신청한 분에게 그대로 보여요.']],
+    ['교회를 열기 전에', 'church', '교회',
+      ['먼저 "테스트" 교회를 만들어 이름 바꾸기, 멈춤, 코드, 초대 링크를 한 번씩 눌러 봐요. 끝나면 테스트 교회는 멈춤으로 둬요.', '스위치는 "관리자만"으로 먼저 걸어 보고 문제가 없으면 "켜짐"으로 바꿔요.', '"켜짐"으로 바꿀 때는 개인정보 처리방침과 준비를 마쳤다는 확인이 필요해요.']],
+    ['스위치를 바꿀 때', 'church', '교회',
+      ['원하는 값을 누르면 확정 상자가 열려요. 바꾸면 어떻게 되는지 읽고 "바꾸기 확정"을 눌러야 서버에 가요.', '바꾼 일은 교회 화면 맨 아래 "최근 바꾼 일"에 남아요.']],
+    ['이용 단계와 기간을 정리할 때', 'church', '교회',
+      ['교회 카드의 "이용 단계"에서 단계(시범·무료·유료), 끝나는 날, 메모를 기록해요. 입금을 확인한 뒤 손으로 바꿔요. 기능을 막지는 않아요.', '오늘 화면에 "30일 안에 끝나는 교회"와 "기간이 지난 교회"가 보여요. 누르면 그 교회만 걸러져 열려요.', '목록을 시트로 옮기려면 교회 화면 아래 "CSV 내려받기(운영용)"를 써요.']],
+    ['의견과 신고', 'feedback', '의견함',
+      ['의견은 읽고 "읽었어요"를 눌러요. 쌓였으면 종류로 거른 뒤 "보이는 것 모두 읽었어요"를 쓸 수 있어요.', '공동체 신고는 공동체 메뉴에서 "자세히 보기"로 봐요. 공동체를 닫으면 되돌릴 수 없고 30일 뒤 지워져요.']],
+    ['화면이 이상할 때', 'storage', '저장 공간',
+      ['"서버 SQL이 아직 없어요"가 보이면 저장 공간 화면 맨 아래 "서버 준비 상태"에서 "점검하기"를 눌러 어느 번호가 빠졌는지 봐요.', '로그인이 안 되면 코이데에서 쓰던 로그인 방법과 같은지 확인해요.', '공용 컴퓨터에서는 다 쓰고 꼭 로그아웃해요.']]
+  ];
+  let guideOpen = false;   // 5분마다 오늘 화면을 새로 그려도 열어 둔 안내가 닫히지 않게 기억한다
+  function guide() {
+    const box = el('details', { class: 'card aa-log gd', open: guideOpen ? true : null }, el('summary', null, '운영 안내 (자주 하는 일)'),
+      ...GUIDE.flatMap(([title, go, name, items]) => [
+        el('p', { class: 'gd-title' }, el('b', null, title), ' ', el('a', { class: 'aa-a', href: '#/' + go }, name + ' 메뉴')),
+        el('ul', { class: 'gd-list' }, ...items.map(x => el('li', null, x)))]));
+    box.addEventListener('toggle', () => { guideOpen = box.open; });
+    return box;
+  }
+
   function render(t, alerts) {
     const ap = t.apply || {}, ch = t.churches || {}, db = t.db || {}, sw = t.switches || {};
     const pct = num(db.percent);
@@ -63,6 +88,7 @@
       row('교회', num(ch.total) + '곳 (테스트 ' + num(ch.test) + '곳 포함)', 'church'),
       ...SWITCHES.map(([k, name]) => row(name, SW[sw[k]] || '알 수 없음', 'church'))));
     if (sw.usage_track === 'off' && (alerts == null || alerts === 'sql')) kids.push(el('p', { class: 'hint' }, '이용 통계 기록이 꺼져 있어요.'));
+    kids.push(guide());
     return el('section', null, ...kids);
   }
   window.Views = Object.assign(window.Views || {}, { today: { render } });

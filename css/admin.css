@@ -352,6 +352,12 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
   .rs-tbl.stack td.empty { display: none; }
 }
 
+/* 운영 안내 */
+.gd { margin-top: 22px; }
+.gd-title { margin: 1em 0 .1em; }
+.gd-title .aa-a { font-size: .85em; margin-left: .4em; }
+.gd-list { margin: .2em 0 0; padding-left: 1.2em; font-size: .92em; }
+.gd-list li + li { margin-top: .3em; }
 /* 요약 한 장 */
 .us-sum-head { margin: 0 0 .2em; font-weight: 600; }
 .us-sum-sub { margin: 1.2em 0 .2em; font-size: .85em; font-weight: 600; color: var(--ink-2); }
