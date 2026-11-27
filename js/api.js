@@ -152,6 +152,22 @@
     communityLookup: key => rpc('admin_community_lookup', { p_key: key }),
     communityClose: id => rpc('admin_community_close', { p_id: id }),
     dbSize: () => rpc('admin_db_size'),
+    // 서버 SQL 준비 상태 점검. 이미 쓰는 읽기 함수를 하나씩 불러 보고 'ok'(있음)·'missing'(없음)·'unknown'(확인 못 함)만 돌려준다. 아무것도 바꾸지 않는다
+    async serverCheck() {
+      const need = (ok) => { if (!ok) throw fail('sql', ''); };
+      const probes = [
+        ['036', '오늘·교회·의견함·공동체', () => rpc('admin_log_list', { p_limit: 1 })],
+        ['037', '이용 통계: 고착도·사용 빈도·머문 시간', () => rpc('admin_usage_frequency', { p_app: null, p_days: 7 })],
+        ['039', '디다코 공동체 스위치', async () => { const r = await rpc('admin_setting_list'); need((r.items || []).some(i => i.key === 'didako_community_open')); }],
+        ['040', '이용 통계: 핵심 지표·이상 신호·묶음 비교', () => rpc('admin_usage_alerts')],
+        ['041', '이용 통계: 연구 탭', () => rpc('admin_usage_codebook')],
+        ['042', '교회 이용 단계와 기간', async () => { const t = await rpc('admin_today'); need('plan_ending' in (t || {})); }]
+      ];
+      return Promise.all(probes.map(async ([num, use, call]) => {
+        try { await call(); return { num, use, state: 'ok' }; }
+        catch (e) { return { num, use, state: e && e.code === 'sql' ? 'missing' : 'unknown' }; }
+      }));
+    },
     // 이용 통계(006). 서버가 5명 미만을 이미 가려서 준다({n,small}). 사람·교회 번호는 오지 않는다. 기간은 'YYYY-MM-DD'(한국 날짜)
     usage: {
       active: a => rpc('admin_usage_active', { p_app: a.app || null, p_from: a.from || null, p_to: a.to || null, p_grain: a.grain || 'day' }),
