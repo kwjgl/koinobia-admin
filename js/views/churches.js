@@ -299,7 +299,7 @@
       const q = st.q.trim().toLowerCase();
       return !q || String(c.name || '').toLowerCase().includes(q) || (c.codes || []).some(x => String(x.code || '').toLowerCase().includes(q));
     }
-    let headNode = null, chipsNode = null, listNode = null;
+    let headNode = null, chipsNode = null, listNode = null, csvBtn = null;
     function paintFilter() {
       if (!listNode) return;
       const shown = st.list.filter(matches), narrowed = st.f !== '' || st.q.trim() !== '';
@@ -314,11 +314,21 @@
         return el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(st.f === k),
           onclick: () => { st.f = k; paintFilter(); } }, k === '' ? label : label + ' ' + n);
       });
+      if (csvBtn) csvBtn.disabled = !shown.length;
       if (chipsNode) { chipsNode.replaceChildren(...chips); chipsNode.hidden = chips.length < 2; }   // '전체'뿐이면 단추 줄을 숨긴다
       if (!st.list.length) listNode.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'msg' }, '아직 교회가 없어요.')));
       else if (!shown.length) listNode.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'msg' }, '조건에 맞는 교회가 없어요.'),
         el('div', { class: 'actions' }, el('button', { class: 'btn small ghost', type: 'button', onclick: () => { st.q = ''; st.f = ''; redraw(); } }, '모두 보기'))));
       else listNode.replaceChildren(el('div', { class: 'aa-grid' }, ...shown.map(card)));
+    }
+    // 지금 보이는 교회를 만든 순서 그대로 CSV로 내려받는다(운영용). 교회별 회원 수 같은 합계는 넣지 않는다(교회끼리 비교가 되지 않게)
+    function downloadCsv() {
+      const rows = st.list.filter(matches).map(c => [c.name, c.kind, c.status, hasPlan(c) ? c.plan : '', hasPlan(c) ? c.plan_until || '' : '', hasPlan(c) ? c.plan_note || '' : '',
+        (c.codes || []).filter(x => x.status === '열림').map(x => x.code).join(' '), (c.codes || []).filter(x => x.status !== '열림').map(x => x.code).join(' '),
+        c.has_admin ? '있음' : '없음', c.created_at ? String(c.created_at).slice(0, 10) : '']);
+      const d = todayStr();
+      Csv.download('koinobia-churches-' + d.replace(/-/g, ''), ['koinobia 교회 목록(운영용)', '내보낸 날 ' + d, '만든 순서. 보이는 교회만 담았어요(거르기·찾기 반영)', '메모는 운영자만 보는 글이에요. 파일을 다른 사람에게 보내지 마세요', '교회별 회원 수 같은 합계와 사람 이름·연락처는 들어 있지 않아요'],
+        ['교회', '종류', '상태', '이용 단계', '이용 기간 끝나는 날', '메모', '열린 코드', '멈춘 코드', '활동 관리자', '만든 날'], rows);
     }
     function filterBar() {
       const q = el('input', { class: 'field', type: 'search', value: st.q, maxlength: '40', autocomplete: 'off', placeholder: '교회 이름·코드 찾기', 'aria-label': '교회 이름이나 코드로 찾기' });
@@ -328,7 +338,7 @@
     }
 
     function build() {
-      headNode = el('p', { class: 'eyebrow' });
+      headNode = el('p', { class: 'eyebrow' }); csvBtn = null;
       listNode = el('div', { class: 'ch-list' });
       const kids = [el('h1', null, '교회'),
         el('p', { class: 'eyebrow' }, '스위치'),
@@ -336,6 +346,10 @@
         headNode];
       if (st.list.length) kids.push(...filterBar());
       kids.push(listNode);
+      if (st.list.length) {
+        csvBtn = el('button', { class: 'link', type: 'button', onclick: downloadCsv }, 'CSV 내려받기(운영용)');
+        kids.push(el('div', { class: 'actions ch-csv' }, UI.withInfo(csvBtn, '지금 보이는 교회를 만든 순서로 담아요. 이용 단계 메모는 운영자만 보는 글이라 파일을 다른 사람에게 보내지 마세요. 회원 수 같은 합계와 사람 이름·연락처는 들어 있지 않아요.', { label: 'CSV 도움말' })));
+      }
       kids.push(st.add ? addForm() : el('button', { class: 'aa-add', type: 'button', onclick: () => { st.add = true; redraw(); } }, el('span', null, '+'), '교회 만들기'));
       const lb = logBox(); if (lb) kids.push(lb);
       paintFilter();
