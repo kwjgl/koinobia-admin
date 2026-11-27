@@ -6,7 +6,7 @@
    ?demo&db=72 / ?demo&db=95  저장 공간 사용 비율을 바꿔 본다(기본 50)
    (이용 통계 040) ?demo&no040 핵심 지표·이상 신호·기능과 다시 오기·묶음 비교·출시 표시 함수가 없는 모양  &floor 오래된 기록이 접힌 모양  &alert=none|off|quiet 이상 신호 없음·기록 꺼짐·조용한 앱
    (이용 통계 041) ?demo&no041 연구 탭(코드북·수집 변경 기록·연구용 내보내기) 함수가 없는 모양. 수집 변경 기록 추가는 메모리에만 반영
-   (소식 045) ?demo&no045 소식 글 함수가 없는 모양  ?demo=empty 글이 없는 모양. 글 쓰기·올리기·지우기는 메모리에만 반영
+   (소식 045·046) ?demo&no045 소식 글 함수가 없는 모양  ?demo&no046 개발 노트·옮기기 전(045만 있는) 서버 모양  ?demo=empty 글이 없는 모양. 글 쓰기·올리기·지우기는 메모리에만 반영
    (이름이 나오는 화면을 만들 때 `<b>굵게</b>`처럼 HTML을 넣어 글자로만 보이는지 본다) */
 (function () {
   const q = new URLSearchParams(location.search);
@@ -63,13 +63,15 @@
   ];
   const fbUnread = () => fbAll.filter(f => !f.read).length;
   // 소식 글(045). 쓰기는 메모리에만 반영한다. ?demo&no045는 서버 SQL 045가 없는 모양, ?demo=empty는 글이 없는 모양
-  let newsSeq = 3;
+  let newsSeq = 4;
+  const no046 = q.has('no046');
   const newsAll = mode === 'empty' ? [] : [
-    { id: 3, title: '<b>예시</b> 가을 업데이트 안내', tag: '업데이트', summary: '', body: '가을 업데이트 소식이에요. **굵게** 쓴 글과 [링크](https://example.com)도 보여요.\n\n### 바뀐 점\n- 하나\n- 둘\n\n> 인용도 보여요.', date: dayStr(-2), status: '올림' },
-    { id: 2, title: '다음 달에 열리는 모임', tag: '안내', summary: '직접 쓴 한 줄 요약', body: '모임 안내 본문이에요.', date: dayStr(20), status: '올림' },
-    { id: 1, title: '쓰다 만 글', tag: '', summary: '', body: '아직 쓰는 중이에요.', date: dayStr(-10), status: '임시' }
+    { id: 4, slug: 'post-4', kind: '공지', app: '', title: '<b>예시</b> 가을 업데이트 안내', tag: '업데이트', summary: '', body: '가을 업데이트 소식이에요. **굵게** 쓴 글과 [링크](https://example.com)도 보여요.\n\n### 바뀐 점\n- 하나\n- 둘\n\n> 인용도 보여요.', date: dayStr(-2), status: '올림', source: [], images: [], ord: 0 },
+    { id: 3, slug: 'post-3', kind: '공지', app: '', title: '다음 달에 열리는 모임', tag: '안내', summary: '직접 쓴 한 줄 요약', body: '모임 안내 본문이에요.', date: dayStr(20), status: '올림', source: [], images: [], ord: 0 },
+    { id: 2, slug: 'post-2', kind: '공지', app: '', title: '쓰다 만 글', tag: '', summary: '', body: '아직 쓰는 중이에요.', date: dayStr(-10), status: '임시', source: [], images: [], ord: 0 },
+    { id: 1, slug: 'note-demo-1', kind: '개발 노트', app: '코이데', title: '예시 개발 노트: 숫자를 보여 주지 않는 이유', tag: '', summary: '노트는 날짜 없이 앱 이름과 참고 자료를 가져요.', body: '본문이에요.', date: dayStr(-30), status: '올림', source: ['코이데 설계서 제1장', '개발 기록 PR #23'], images: [['/screens/koide/phone-1.jpg', '예시 화면']], ord: 1 }
   ];
-  const newsOut = () => ({ items: newsAll.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id)).map(p => Object.assign({}, p, { live: p.status === '올림' && p.date <= dayStr(0), created_at: p.date, updated_at: p.date })) });
+  const newsOut = () => Object.assign(no046 ? {} : { v: 2 }, { items: newsAll.slice().sort((a, b) => ((a.kind === '개발 노트') - (b.kind === '개발 노트')) || (a.kind === '공지' ? (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id) : (a.ord - b.ord) || b.id - a.id)).map(p => Object.assign({}, p, { live: p.status === '올림' && p.date <= dayStr(0), created_at: p.date, updated_at: p.date }, no046 ? { kind: undefined, app: undefined, source: undefined, images: undefined, slug: undefined } : {})) });
   // 공동체 점검(신고 글에도 HTML을 넣었다)
   const comms = {
     g1: { id: 'g1', name: '<b>아침</b> 기도 모임', status: '열림', created_at: '2026-10-02', endsOn: '2026-12-02', n: 8, reports: [{ at: '2026-11-18T10:00:00+09:00', reason: '기도제목이 맞지 않아요', note: '<b>굵게</b> 적힌 신고 글이에요.\n둘째 줄', status: '새로' }, { at: '2026-11-16T09:00:00+09:00', reason: '기도제목이 맞지 않아요', note: '', status: '새로' }, { at: '2026-11-10T09:00:00+09:00', reason: '다른 이유', note: '', status: '처리함' }] },
@@ -470,9 +472,15 @@
             if (g.length > 20) throw bad('꼬리표는 20글자 이하로 써 주세요.');
             if (s.length > 200) throw bad('요약은 200글자 이하로 써 주세요.');
             if (b.length < 1 || b.length > 20000) throw bad('본문은 1~20000글자로 써 주세요.');
+            const kd = a.p_kind || '공지', ap = String(a.p_app || '').trim();
+            if (!['공지', '개발 노트'].includes(kd)) throw bad('종류는 공지 또는 개발 노트예요.');
+            if (ap.length > 12) throw bad('앱 이름은 12글자 이하로 써 주세요.');
+            const src = String(a.p_source || '').split('\n').map(x => x.trim()).filter(Boolean);
+            if (src.length > 8 || src.some(x => x.length > 200)) throw bad('참고 자료는 8줄 이하, 줄마다 200글자 이하로 써 주세요.');
             const row = { title: t, tag: g, summary: s, body: b, date: a.p_date || dayStr(0), status: a.p_status };
+            if (!no046) Object.assign(row, { kind: kd, app: kd === '공지' ? '' : ap, source: src });
             let id = a.p_id;
-            if (id == null) { id = ++newsSeq; newsAll.push(Object.assign({ id }, row)); }
+            if (id == null) { id = ++newsSeq; newsAll.push(Object.assign({ id, slug: 'post-' + id, kind: '공지', app: '', source: [], images: [], ord: 0 }, row)); }
             else { const p = newsAll.find(x => x.id === id); if (!p) throw bad('글을 찾지 못했어요.'); Object.assign(p, row); }
             putLog('news-save', id + '=' + a.p_status);
             return ok(Object.assign(newsOut(), { saved: id }));
