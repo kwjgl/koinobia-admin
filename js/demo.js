@@ -63,12 +63,14 @@
   ];
   const fbUnread = () => fbAll.filter(f => !f.read).length;
   // 소식 글(045). 쓰기는 메모리에만 반영한다. ?demo&no045는 서버 SQL 045가 없는 모양, ?demo=empty는 글이 없는 모양
-  let newsSeq = 4;
+  let newsSeq = 6;
   const no046 = q.has('no046');
   const newsAll = mode === 'empty' ? [] : [
     { id: 4, slug: 'post-4', kind: '공지', app: '', title: '<b>예시</b> 가을 업데이트 안내', tag: '업데이트', summary: '', body: '가을 업데이트 소식이에요. **굵게** 쓴 글과 [링크](https://example.com)도 보여요.\n\n### 바뀐 점\n- 하나\n- 둘\n\n> 인용도 보여요.', date: dayStr(-2), status: '올림', source: [], images: [], ord: 0 },
     { id: 3, slug: 'post-3', kind: '공지', app: '', title: '다음 달에 열리는 모임', tag: '안내', summary: '직접 쓴 한 줄 요약', body: '모임 안내 본문이에요.', date: dayStr(20), status: '올림', source: [], images: [], ord: 0 },
     { id: 2, slug: 'post-2', kind: '공지', app: '', title: '쓰다 만 글', tag: '', summary: '', body: '아직 쓰는 중이에요.', date: dayStr(-10), status: '임시', source: [], images: [], ord: 0 },
+    { id: 6, slug: 'note-demo-3', kind: '개발 노트', app: '디다코', title: '예시 개발 노트: 질문을 남기는 앱', tag: '', summary: '', body: '질문을 적고 오래 품었다가 발견과 만나는 곳이에요. 둘째 줄도 있어요.', date: dayStr(-30), status: '올림', source: [], images: [], ord: 3 },
+    { id: 5, slug: 'note-demo-2', kind: '개발 노트', app: '코이데', title: '예시 개발 노트: 서랍을 덜어 낸 날', tag: '', summary: '기도 노트에서 서랍을 없앤 까닭이에요.', body: '본문이에요.', date: dayStr(-30), status: '올림', source: [], images: [], ord: 2 },
     { id: 1, slug: 'note-demo-1', kind: '개발 노트', app: '코이데', title: '예시 개발 노트: 숫자를 보여 주지 않는 이유', tag: '', summary: '노트는 날짜 없이 앱 이름과 참고 자료를 가져요.', body: '본문이에요.', date: dayStr(-30), status: '올림', source: ['코이데 설계서 제1장', '개발 기록 PR #23'], images: [['/screens/koide/phone-1.jpg', '예시 화면']], ord: 1 }
   ];
   const newsOut = () => Object.assign(no046 ? {} : { v: 2 }, { items: newsAll.slice().sort((a, b) => ((a.kind === '개발 노트') - (b.kind === '개발 노트')) || (a.kind === '공지' ? (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id) : (a.ord - b.ord) || b.id - a.id)).map(p => Object.assign({}, p, { live: p.status === '올림' && p.date <= dayStr(0), created_at: p.date, updated_at: p.date }, no046 ? { kind: undefined, app: undefined, source: undefined, images: undefined, slug: undefined } : {})) });
