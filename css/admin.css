@@ -368,3 +368,20 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
   .wrap { padding: 0; max-width: none; }
   .card { break-inside: avoid; }
 }
+
+/* 소식 글쓰기 */
+.nw-body { min-height: 16em; resize: vertical; line-height: 1.7; font: inherit; }
+.nw-tools { margin-bottom: 8px; }
+.nw-acts { margin-top: 4px; }
+.nw-new { margin: 12px 0 14px; }
+.nw-meta { margin: 0; }
+.nw-prev h2 { font-family: var(--f-display); font-size: 1.3em; line-height: 1.35; overflow-wrap: anywhere; }
+.nw-prev .hint { margin: 0; }
+.md { overflow-wrap: anywhere; word-break: keep-all; line-height: 1.75; }
+.md p, .md ul, .md ol { margin: .8em 0 0; }
+.md ul, .md ol { padding-left: 1.3em; }
+.md li + li { margin-top: .3em; }
+.md h3 { font-family: var(--f-display); font-size: 1.15em; margin: 1.4em 0 0; }
+.md b { font-weight: 600; }
+.md a { color: var(--accent); }
+.md blockquote { margin: .9em 0 0; padding: .8em 1em; border-left: 3px solid var(--accent-mid); background: var(--surface-2); border-radius: 0 12px 12px 0; }

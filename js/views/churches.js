@@ -22,7 +22,8 @@
   const NEED_OK = ['church_open', 'church_apply', 'usage_track'];   // '켜짐'으로 바꿀 때 준비 확인 체크가 필요한 것
   const ACTION = {
     'church-create': '교회 만듦', 'church-rename': '이름 고침', 'church-plan': '이용 단계 기록', 'church-state': '멈춤·풀기', 'code-add': '코드 더함',
-    'code-stop': '코드 멈춤', 'code-open': '코드 풀기', invite: '초대 링크 만듦', setting: '스위치 바꿈'
+    'code-stop': '코드 멈춤', 'code-open': '코드 풀기', invite: '초대 링크 만듦', setting: '스위치 바꿈',
+    'news-save': '소식 글 저장', 'news-delete': '소식 글 지움'
   };
   const LOG_STEPS = [50, 100, 200];
   const PLANS = ['시범', '무료', '유료'];
