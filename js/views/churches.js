@@ -27,6 +27,9 @@
   const PLANS = ['시범', '무료', '유료'];
   const PLAN_HELP = '이용 단계를 기록만 해요. 아직 기능을 막지는 않아요. 입금을 확인한 뒤 손으로 바꿔요.';
   const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  // 거르기: 순위가 아니라 모아 보기다. 목록은 늘 만든 순서 그대로다
+  const FILTERS = [['', '전체'], ['noadmin', '관리자 없음'], ['ending', '30일 안에 끝남'], ['ended', '기간 지남'], ['stopped', '멈춤']];
+  const dayPlus = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const STATS = [['members', '회원'], ['depts', '부서'], ['households', '가정'], ['linked', '연결'], ['admins', '관리자']];
   const norm = v => String(v || '').toUpperCase().replace(/[^A-Z0-9가-힣]/g, '');
   const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -44,7 +47,14 @@
 
   function render(first) {
     const st = { sw: first.settings.items || [], list: first.churches.items || [], log: first.log && first.log.items || null,
-      open: {}, invite: {}, ask: {}, pick: {}, swAsk: null, busy: false, add: false };
+      open: {}, invite: {}, ask: {}, pick: {}, swAsk: null, busy: false, add: false, q: '', f: '' };
+    // 오늘 화면에서 온 링크(#/church?f=ended)를 읽는다. 허용된 값만 쓰고 주소는 깨끗이 되돌린다
+    const hm = /^#\/church\?(.*)$/.exec(location.hash);
+    if (hm) {
+      const f = new URLSearchParams(hm[1]).get('f');
+      if (FILTERS.some(x => x[0] === f)) st.f = f;
+      try { history.replaceState(null, '', location.pathname + location.search + '#/church'); } catch (e) { /* 주소만 못 지운다 */ }
+    }
     const sec = el('section', null);
     const redraw = () => {
       sec.replaceChildren(...build());
@@ -258,7 +268,7 @@
         showErr(''); fields.forEach(x => { x.disabled = true; });
         actions.replaceChildren(el('p', { class: 'msg' }, '이 ' + kind.value + '를 만들까요? 되돌릴 수 없어요.'),
           el('button', { class: 'btn small', type: 'button', onclick: () => act(err, () => api.churchCreate(n, kind.value, c, d), r => {
-            setList(r); st.add = false;
+            setList(r); st.add = false; st.q = ''; st.f = '';
             if (r.made) { st.open[r.made.churchId] = 'invite'; st.invite[r.made.churchId] = { token: r.made.token, expires: r.made.expires }; st.focus = r.made.churchId; }
           }, '교회를 만들었어요. 아래 초대 링크를 첫 관리자에게 보내 주세요.') }, '만들기'),
           el('button', { class: 'btn small ghost', type: 'button', onclick: edit }, '다시 고치기'));
@@ -276,14 +286,58 @@
           : el('p', { class: 'hint' }, '아직 바꾼 일이 없어요.'));
     }
 
+    // ---- 거르기와 이름 찾기 ----
+    function passes(c, f) {
+      if (f === 'noadmin') return !c.has_admin;
+      if (f === 'stopped') return c.status === '멈춤';
+      if (f === 'ended') return hasPlan(c) && !!c.plan_until && c.plan_until < todayStr();
+      if (f === 'ending') return hasPlan(c) && !!c.plan_until && c.plan_until >= todayStr() && c.plan_until <= dayPlus(30);
+      return true;
+    }
+    function matches(c) {
+      if (!passes(c, st.f)) return false;
+      const q = st.q.trim().toLowerCase();
+      return !q || String(c.name || '').toLowerCase().includes(q) || (c.codes || []).some(x => String(x.code || '').toLowerCase().includes(q));
+    }
+    let headNode = null, chipsNode = null, listNode = null;
+    function paintFilter() {
+      if (!listNode) return;
+      const shown = st.list.filter(matches), narrowed = st.f !== '' || st.q.trim() !== '';
+      headNode.textContent = narrowed ? '교회 ' + shown.length + '곳 보임 (전체 ' + st.list.length + '곳, 만든 순서)' : '교회 ' + st.list.length + '곳 (만든 순서)';
+      if (chipsNode) chipsNode.replaceChildren(...FILTERS.filter(([k]) => {
+        if (k === '') return true;
+        if (k === st.f) return true;
+        if ((k === 'ending' || k === 'ended') && !st.list.some(hasPlan)) return false;   // 042 전 서버는 이 칸이 없다
+        return st.list.some(c => passes(c, k));
+      }).map(([k, label]) => {
+        const n = k === '' ? 0 : st.list.filter(c => passes(c, k)).length;
+        return el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(st.f === k),
+          onclick: () => { st.f = k; paintFilter(); } }, k === '' ? label : label + ' ' + n);
+      }));
+      if (!st.list.length) listNode.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'msg' }, '아직 교회가 없어요.')));
+      else if (!shown.length) listNode.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'msg' }, '조건에 맞는 교회가 없어요.'),
+        el('div', { class: 'actions' }, el('button', { class: 'btn small ghost', type: 'button', onclick: () => { st.q = ''; st.f = ''; redraw(); } }, '모두 보기'))));
+      else listNode.replaceChildren(el('div', { class: 'aa-grid' }, ...shown.map(card)));
+    }
+    function filterBar() {
+      const q = el('input', { class: 'field', type: 'search', value: st.q, maxlength: '40', autocomplete: 'off', placeholder: '교회 이름·코드 찾기', 'aria-label': '교회 이름이나 코드로 찾기' });
+      q.addEventListener('input', () => { st.q = q.value; paintFilter(); });
+      chipsNode = el('div', { class: 'aa-acts fb-bar', role: 'group', 'aria-label': '교회 거르기' });
+      return [q, chipsNode];
+    }
+
     function build() {
+      headNode = el('p', { class: 'eyebrow' });
+      listNode = el('div', { class: 'ch-list' });
       const kids = [el('h1', null, '교회'),
         el('p', { class: 'eyebrow' }, '스위치'),
         el('div', { class: 'card sw-list' }, ...SWITCHES.filter(([k]) => k !== 'didako_community_open' || st.sw.some(x => x.key === k)).map(([k, n, d]) => switchRow(k, n, d))),
-        el('p', { class: 'eyebrow' }, '교회 ' + st.list.length + '곳 (만든 순서)')];
-      kids.push(st.list.length ? el('div', { class: 'aa-grid' }, ...st.list.map(card)) : el('div', { class: 'card' }, el('p', { class: 'msg' }, '아직 교회가 없어요.')));
+        headNode];
+      if (st.list.length) kids.push(...filterBar());
+      kids.push(listNode);
       kids.push(st.add ? addForm() : el('button', { class: 'aa-add', type: 'button', onclick: () => { st.add = true; redraw(); } }, el('span', null, '+'), '교회 만들기'));
       const lb = logBox(); if (lb) kids.push(lb);
+      paintFilter();
       return kids;
     }
     redraw();
