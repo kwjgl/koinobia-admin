@@ -304,7 +304,7 @@
       if (!listNode) return;
       const shown = st.list.filter(matches), narrowed = st.f !== '' || st.q.trim() !== '';
       headNode.textContent = narrowed ? '교회 ' + shown.length + '곳 보임 (전체 ' + st.list.length + '곳, 만든 순서)' : '교회 ' + st.list.length + '곳 (만든 순서)';
-      if (chipsNode) chipsNode.replaceChildren(...FILTERS.filter(([k]) => {
+      const chips = FILTERS.filter(([k]) => {
         if (k === '') return true;
         if (k === st.f) return true;
         if ((k === 'ending' || k === 'ended') && !st.list.some(hasPlan)) return false;   // 042 전 서버는 이 칸이 없다
@@ -313,7 +313,8 @@
         const n = k === '' ? 0 : st.list.filter(c => passes(c, k)).length;
         return el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(st.f === k),
           onclick: () => { st.f = k; paintFilter(); } }, k === '' ? label : label + ' ' + n);
-      }));
+      });
+      if (chipsNode) { chipsNode.replaceChildren(...chips); chipsNode.hidden = chips.length < 2; }   // '전체'뿐이면 단추 줄을 숨긴다
       if (!st.list.length) listNode.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'msg' }, '아직 교회가 없어요.')));
       else if (!shown.length) listNode.replaceChildren(el('div', { class: 'card' }, el('p', { class: 'msg' }, '조건에 맞는 교회가 없어요.'),
         el('div', { class: 'actions' }, el('button', { class: 'btn small ghost', type: 'button', onclick: () => { st.q = ''; st.f = ''; redraw(); } }, '모두 보기'))));
@@ -323,7 +324,7 @@
       const q = el('input', { class: 'field', type: 'search', value: st.q, maxlength: '40', autocomplete: 'off', placeholder: '교회 이름·코드 찾기', 'aria-label': '교회 이름이나 코드로 찾기' });
       q.addEventListener('input', () => { st.q = q.value; paintFilter(); });
       chipsNode = el('div', { class: 'aa-acts fb-bar', role: 'group', 'aria-label': '교회 거르기' });
-      return [q, chipsNode];
+      return [el('div', { class: 'ch-bar' }, q, chipsNode)];
     }
 
     function build() {

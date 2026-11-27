@@ -134,6 +134,9 @@ a.td-row > :first-child { flex: 1 1 auto; }
 .aa-loglist { margin: .5em 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: .9em; overflow-wrap: anywhere; }
 .aa-acts .btn[aria-pressed="true"] { background: var(--accent-soft); }
 .aa-form .aa-head { flex-wrap: wrap; }
+.ch-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.ch-bar .fb-bar { margin-bottom: 0; }
+.ch-bar .fb-bar[hidden] { display: none; }
 .aa-grid + .aa-add, .card + .aa-add, .ch-list + .aa-add { width: 100%; margin-top: 14px; min-height: 64px; }
 
 /* 의견함·공동체·저장 공간 */
