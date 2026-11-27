@@ -27,7 +27,36 @@
       el('thead', null, el('tr', null, el('th', null, '표 이름'), el('th', null, '크기'), el('th', null, '대략 줄 수'))),
       el('tbody', null, ...tables.slice(0, 10).map(t => el('tr', null,
         el('td', null, String(t.table || '')), el('td', null, mb(t.bytes)), el('td', null, num(t.rows).toLocaleString('ko-KR'))))))));
+    kids.push(serverCard());
     return el('section', null, ...kids);
+  }
+
+  // 서버 준비 상태: 단추를 눌렀을 때만 읽기 함수를 불러 본다. 없는 번호는 pray-for supabase 폴더에서 넣는다
+  const STATE = { ok: '있음', missing: '없음', unknown: '확인하지 못했어요' };
+  function serverCard() {
+    const box = el('div', { class: 'card' });
+    let busy = false, res = null;
+    const paint = () => {
+      const go = el('button', { class: 'btn small ghost', type: 'button', disabled: busy, onclick: run }, busy ? '점검 중…' : res ? '다시 점검하기' : '점검하기');
+      const kids = [go];
+      if (res) {
+        kids.push(el('dl', { class: 'ap-info' }, ...res.flatMap(r => [el('dt', null, r.num + ' · ' + r.use),
+          el('dd', null, r.state === 'ok' ? STATE.ok : el('span', { class: 'ch-todo' + (r.state === 'missing' ? '' : ' warn') }, STATE[r.state]))])));
+        const miss = res.filter(r => r.state === 'missing').map(r => r.num);
+        if (miss.length) kids.push(el('p', { class: 'hint' }, '없는 번호(' + miss.join(', ') + ')는 pray-for 저장소 supabase 폴더의 같은 번호 파일을 Supabase 콘솔 SQL Editor에서 실행하면 돼요.'));
+      }
+      box.replaceChildren(...kids);
+    };
+    async function run() {
+      if (busy) return;
+      busy = true; paint();
+      try { res = await api.serverCheck(); } catch (e) { res = null; }
+      busy = false; paint();
+    }
+    paint();
+    return el('div', null,
+      UI.withInfo(el('p', { class: 'eyebrow' }, '서버 준비 상태'), '서버 SQL 번호가 Supabase에 들어갔는지 읽기만 해서 알려 줘요. 아무것도 바꾸지 않아요. 036·037·039·040·041·042를 봐요.', { label: '서버 준비 상태 도움말' }),
+      box);
   }
   window.Views = Object.assign(window.Views || {}, { storage: { render } });
 })();
