@@ -16,6 +16,15 @@
     { app: 'didako', name: '디다코 교회', steps: ['church.open', 'church.keep-sentence', 'church.reflect'], note: '교회를 열고 오늘 남길 한 문장을 쓴 뒤 돌아보기까지 남긴 흐름이에요.' }
   ];
   const S = { app: '', days: 30, tab: 'glance', grain: 'day', nrGrain: 'week', kind: '', months: 6, flow: 0, fdays: 7, custom: ['', '', '', '', '', '', '', ''], customGo: null, cross: '', fkind: 'action', fsort: 'adj', fhide: false, seg: 'device', segm: 'ret', seq: 0 };
+  // 마지막으로 고른 앱·기간·탭은 이 기기에 기억한다(저장이 안 되어도 화면은 그대로 쓴다)
+  const PREF = 'koinobia-admin-usage';
+  try {
+    const x = JSON.parse(localStorage.getItem(PREF) || 'null') || {};
+    if (APPS.some(a => a[0] === x.app)) S.app = x.app;
+    if ([7, 30, 90, 365].includes(x.days)) S.days = x.days;
+    if (TABS.some(t => t[0] === x.tab)) S.tab = x.tab;
+  } catch (e) { /* 기억이 없어도 기본값으로 */ }
+  const savePref = () => { try { localStorage.setItem(PREF, JSON.stringify({ app: S.app, days: S.days, tab: S.tab })); } catch (e) { /* 저장 못 해도 괜찮다 */ } };
   const cache = new Map();
   let panelEl = null, daysSel = null;
   // 표 CSV(운영용) 머리말에 쓰는 앱·기간·날짜. 지표 정의 판은 서버 040의 m1
@@ -691,7 +700,7 @@
       el('button', { class: 'us-tab', type: 'button', role: 'tab', id: 'us-tab-' + k, 'aria-selected': String(S.tab === k), tabindex: S.tab === k ? '0' : '-1', 'aria-controls': 'us-panel', 'data-tab': k,
         onclick: () => pick(k) }, name)));
     function pick(k) {
-      S.tab = k;
+      S.tab = k; savePref();
       tabs.querySelectorAll('.us-tab').forEach(b => { const on = b.dataset.tab === k; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
       panelEl.setAttribute('aria-labelledby', 'us-tab-' + k);
       panel();
@@ -702,9 +711,9 @@
       if (j < 0) return;
       e.preventDefault(); pick(TABS[j][0]); document.getElementById('us-tab-' + TABS[j][0]).focus();
     });
-    daysSel = select('기간', [[7, '최근 7일'], [30, '최근 30일'], [90, '최근 90일'], [365, '최근 365일']], S.days, v => { S.days = Number(v); panel(); });
+    daysSel = select('기간', [[7, '최근 7일'], [30, '최근 30일'], [90, '최근 90일'], [365, '최근 365일']], S.days, v => { S.days = Number(v); savePref(); panel(); });
     const ctl = el('div', { class: 'us-ctl' },
-      select('앱', APPS, S.app, v => { S.app = v; panel(); }),
+      select('앱', APPS, S.app, v => { S.app = v; savePref(); panel(); }),
       daysSel,
       el('button', { class: 'btn small ghost', type: 'button', onclick: () => { cache.clear(); Research.refresh(); panel(); } }, '다시 불러오기'));
     const sec = el('section', null, UI.withInfo(el('h1', null, '이용 통계'), '앱 전체 합계만 보여요. 사람이나 교회별로 나누지 않아요.'),
