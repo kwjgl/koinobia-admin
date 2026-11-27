@@ -5,7 +5,7 @@
   const C = Charts;
   const APPS = [['', '전체'], ['koide', '코이데'], ['didako', '디다코'], ['telio', '텔리오']];
   const APP_NAME = { koide: '코이데', didako: '디다코', telio: '텔리오' };
-  const TABS = [['glance', '한눈에'], ['feature', '기능'], ['flow', '흐름'], ['back', '다시 오는 사람'], ['time', '시간'], ['device', '기기·앱'], ['research', '연구']];
+  const TABS = [['glance', '한눈에'], ['feature', '기능'], ['flow', '흐름'], ['back', '다시 오는 사람'], ['time', '시간'], ['device', '기기·앱'], ['research', '연구'], ['summary', '요약 한 장']];
   const FLOWS = [
     { app: 'koide', name: '코이데 노트 첫 기도', steps: ['note.open', 'note.item-add', 'note.pray-start', 'note.pray-done'], note: '활성화율: 처음 노트를 열고 이 기간 안에 기도하기를 마친 사람의 비율이에요.' },
     { app: 'koide', name: '코이데 교회 첫 접속', steps: ['church.step-login', 'church.step-consent', 'church.step-app'], note: '부서·사랑방·가정 화면은 건너뛰는 사람이 있어서 순서 깔때기에서 뺐어요.' },
@@ -172,6 +172,57 @@
     const days = Math.min(S.days, 180);
     return card('핵심 지표', '활동한 사람, 핵심 행동, 기도했어요 비율, 새로 온 사람, 4주 안에 다시 온 비율, 오류를 한눈에 봐요. 어제까지 고른 기간과 바로 앞 같은 기간을 비교하고, 작은 선은 그 기간을 거꾸로 이어 본 추이예요(달력 주가 아니라 어제부터 7일씩). 4주 지표는 28일 늦게 반영돼요. 365일은 180일로 줄여요.', null,
       () => get40('kpi', { app: S.app, days }), kpiDraw, tk);
+  }
+
+  // ---- 요약 한 장: 최근 30일(어제까지)을 한 화면에 모아 인쇄·PDF·글 복사로 쓴다. 앱 전체 합계만 ----
+  const ALERT_TEXT = a => {
+    const app = appName(a.app) || '앱';
+    return a.code === 'silent' ? app + '에서 ' + (Number((a.value || {}).silent_days) || 0) + '일째 기록이 들어오지 않았어요.'
+      : a.code === 'drop' ? app + ' 활동한 사람이 평소보다 많이 줄었어요.'
+      : a.code === 'errors' ? app + '에서 오류가 평소보다 많이 늘었어요.' : '';
+  };
+  function summary(tk) {
+    const days = 30, r = { from: kst(Date.now() - (days - 1) * 864e5), to: kst(Date.now()) };
+    let text = '';
+    const copy = async () => {
+      if (!text) return UI.toast('아직 불러오는 중이에요.');
+      try { await navigator.clipboard.writeText(text); UI.toast('요약을 복사했어요.'); } catch (e) { UI.toast('복사하지 못했어요.'); }
+    };
+    const bar = tools(
+      el('button', { class: 'btn small ghost', type: 'button', onclick: () => window.print() }, '인쇄·PDF로 저장'),
+      el('button', { class: 'btn small ghost', type: 'button', onclick: copy }, '글로 복사'));
+    return [card('최근 30일 요약', '어제까지 30일을 바로 앞 30일과 비교해요. 앱 전체 합계만 있고 사람이나 교회별로 나누지 않아요. 인쇄·PDF로 저장을 누르면 이 카드만 종이 한 장 모양으로 나와요.', bar,
+      () => Promise.all([get40('kpi', { app: S.app, days }), get('active', { app: S.app, from: r.from, to: r.to, grain: 'day' }).catch(() => null), api.usage.alerts().catch(() => null)]),
+      ([d, act, al]) => {
+        const out = el('div', { class: 'us-sum' });
+        const cf = d.cur || {}, pf = d.prev || {}, appLabel = S.app ? appName(S.app) : '전체 앱';
+        const head = appLabel + ' · ' + shortDate(cf.from) + '~' + shortDate(cf.to) + ' (비교: ' + shortDate(pf.from) + '~' + shortDate(pf.to) + ')';
+        out.append(el('p', { class: 'us-sum-head' }, head));
+        const tiles = (d.kpis || []).map(k => kpiTile(k, d));
+        if (!tiles.length) return nothing('이 기간에는 기록이 없어요.');
+        out.append(el('div', { class: 'gr-kpis' }, ...tiles));
+        const lines = ['코이노비아 이용 통계 요약', head, ''];
+        tiles.forEach(t => {
+          const l = t.querySelector('.gr-kpi-l'), v = t.querySelector('.gr-kpi-v'), dl = t.querySelector('.gr-delta'), sb = t.querySelector('.gr-kpi-s');
+          lines.push('- ' + (l ? l.textContent : '') + ': ' + (v ? v.textContent : '') + (dl && dl.textContent ? ' (' + dl.textContent + ')' : '') + (sb && sb.textContent ? ' · ' + sb.textContent : ''));
+        });
+        const sr = act && act.series || [];
+        const vals = sr.map(x => C.pick(x.active, 'n')), seen = vals.filter(v => v != null);
+        if (seen.length) {
+          C.setWidth(out.clientWidth || 320);
+          out.append(el('p', { class: 'us-sum-sub' }, '하루에 활동한 사람'));
+          out.append(C.figure({ svg: C.line(sr.map(x => C.plabel(x.period, 'day')), [{ name: '활동한 사람', values: vals }], { area: true, unit: '명', full: sr.map(x => C.plong(x.period, 'day')), label: '하루에 활동한 사람 꺾은선 그래프. 기간 ' + sr.length + '일, 보이는 값은 ' + Math.min(...seen) + '명에서 ' + Math.max(...seen) + '명' }) }));
+          lines.push('', '하루에 활동한 사람: 가장 적은 날 ' + Math.min(...seen) + '명, 가장 많은 날 ' + Math.max(...seen) + '명');
+        }
+        const warns = al && Array.isArray(al.items) ? al.items.filter(i => i.level === 'warn' && ALERT_TEXT(i)) : [];
+        out.append(el('p', { class: 'us-sum-sub' }, '이상 신호'));
+        if (warns.length) { out.append(el('ul', { class: 'us-sum-list' }, ...warns.map(i => el('li', null, ALERT_TEXT(i))))); lines.push('', '이상 신호:'); warns.forEach(i => lines.push('- ' + ALERT_TEXT(i))); }
+        else { out.append(note(al ? '이상한 점이 보이지 않아요.' : '이상 신호는 서버 040을 넣으면 보여요.')); if (al) lines.push('', '이상 신호: 없음'); }
+        out.append(note('보는 날 ' + shortDate(r.to) + ' · 앱 전체 합계(사람·교회 단위 없음)'));
+        lines.push('', '앱 전체 합계이고 사람·교회 단위는 없어요.');
+        text = lines.join('\n');
+        return out;
+      }, tk)];
   }
 
   // ---- 한눈에 ----
@@ -663,11 +714,11 @@
   }
 
   const research = tk => Research.build(tk, () => tk === S.seq, S.app);
-  const BUILD = { glance, feature, flow, back, time, device, research };
+  const BUILD = { glance, feature, flow, back, time, device, research, summary };
 
   function panel() {
     const tk = ++S.seq;
-    if (daysSel) daysSel.hidden = S.tab === 'research';   // 연구 탭은 자기 기간을 쓴다
+    if (daysSel) daysSel.hidden = S.tab === 'research' || S.tab === 'summary';   // 연구·요약 탭은 자기 기간을 쓴다
     panelEl.replaceChildren(...BUILD[S.tab](tk));
   }
 
