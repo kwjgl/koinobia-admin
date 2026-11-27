@@ -30,19 +30,20 @@
     paths.forEach(d => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); s.append(p); });
     return s;
   }
-  const blank = () => ({ id: null, title: '', tag: '공지', summary: '', date: todayStr(), body: '', status: '임시' });
+  const APPS = ['코이데', '디다코', '텔리오'];
+  const blank = () => ({ id: null, title: '', tag: '공지', summary: '', date: todayStr(), body: '', status: '임시', kind: '공지', app: '', source: '' });
 
   // d: {items} 또는 {error} (서버 SQL이 없을 때)
   function render(d) {
-    const st = { items: (d && d.items) || [], error: (d && d.error) || '', ed: null, prev: false, busy: false, err: '', ask: false, done: null };
+    const st = { v: Number(d && d.v) || 1, items: (d && d.items) || [], error: (d && d.error) || '', ed: null, prev: false, busy: false, err: '', ask: false, done: null };
     const sec = el('section', null);
     const redraw = () => sec.replaceChildren(...build());
     const live = it => it.live;
     const statusText = it => it.status === '임시' ? '임시 저장' : it.live ? '올라가 있어요' : dayText(it.date).replace(/^\d+년 /, '') + '부터(예약)';
-    const link = it => el('a', { class: 'aa-a', href: SITE + '#post-' + it.id, target: '_blank', rel: 'noopener' }, '소식에서 보기');
+    const link = it => el('a', { class: 'aa-a', href: SITE + '#' + (it.slug || 'post-' + it.id), target: '_blank', rel: 'noopener' }, '소식에서 보기');
 
     function open(it) {
-      st.ed = it ? { id: it.id, title: it.title, tag: it.tag, summary: it.summary, date: it.date, body: it.body, status: it.status } : blank();
+      st.ed = it ? { id: it.id, title: it.title, tag: it.tag, summary: it.summary, date: it.date, body: it.body, status: it.status, kind: it.kind || '공지', app: it.app || '', source: (it.source || []).join('\n'), imagesN: (it.images || []).length } : blank();
       st.prev = false; st.err = ''; st.ask = false; st.done = null; redraw();
     }
     function resume(b) { st.ed = Object.assign(blank(), b); st.prev = false; st.err = ''; st.ask = false; st.done = null; redraw(); }
@@ -53,12 +54,12 @@
       if (st.busy) return;
       st.busy = true; st.err = ''; redraw();
       try {
-        const r = await api.newsSave({ id: e.id, title: e.title, tag: e.tag, summary: e.summary, body: e.body, date: e.date, status });
+        const r = await api.newsSave({ id: e.id, title: e.title, tag: e.tag, summary: e.summary, body: e.body, date: e.date, status, kind: e.kind, app: e.app, source: e.source, old: st.v < 2 });
         st.items = r.items || [];
         const it = st.items.find(x => x.id === r.saved);
         mem.clear(); st.ed = null; st.prev = false;
-        st.done = { id: r.saved, msg: status === '임시' ? '임시 저장했어요. 아직 소식에는 보이지 않아요.' : it && !it.live ? '올렸어요. ' + dayText(it.date) + '부터 소식에 보여요.' : '올렸어요. 소식에 바로 보여요(처음 몇 초는 걸릴 수 있어요).' };
-      } catch (x) { st.err = x.message || '저장하지 못했어요.'; }
+        st.done = { id: r.saved, slug: it && it.slug || 'post-' + r.saved, msg: status === '임시' ? '임시 저장했어요. 아직 소식에는 보이지 않아요.' : it && !it.live ? '올렸어요. ' + dayText(it.date) + '부터 소식에 보여요.' : '올렸어요. 소식에 바로 보여요(처음 몇 초는 걸릴 수 있어요).' };
+      } catch (x) { st.err = x.code === 'sql' ? '서버 SQL 046이 아직 없어요. docs/setup.md의 안내대로 넣어 주세요.' : (x.message || '저장하지 못했어요.'); }
       st.busy = false; redraw();
     }
     async function remove() {
@@ -102,6 +103,12 @@
       title.value = e.title;
       const tag = el('input', { class: 'nw-pill', type: 'text', maxlength: '20', value: e.tag, list: 'aa-news-tags', size: '8', autocomplete: 'off', placeholder: '꼬리표', 'aria-label': '꼬리표(제목 옆 작은 표시)', oninput: ev => onIn('tag', ev) });
       const tags = el('datalist', { id: 'aa-news-tags' }, ...TAGS.map(t => el('option', { value: t })));
+      const isNote = e.kind === '개발 노트';
+      const kindBtn = k => el('button', { class: 'nw-pill nw-kind', type: 'button', 'aria-pressed': String(e.kind === k), onclick: () => { e.kind = k; if (k === '개발 노트') { if (!e.app) e.app = APPS[0]; if (e.tag === '공지') e.tag = ''; } else if (!e.tag) e.tag = '공지'; keep(); redraw(); } }, k);
+      const app = el('select', { class: 'nw-pill', 'aria-label': '앱 이름', onchange: ev => { e.app = ev.target.value; keep(); } },
+        ...APPS.concat(e.app && !APPS.includes(e.app) ? [e.app] : []).map(a => el('option', { value: a, selected: a === e.app }, a)), el('option', { value: '', selected: !e.app }, '앱 없음'));
+      const src = el('textarea', { class: 'nw-src', rows: '3', maxlength: '1700', placeholder: '한 줄에 하나씩', 'aria-label': '참고 자료', oninput: ev => onIn('source', ev) });
+      src.value = e.source;
       const date = el('input', { class: 'nw-pill', type: 'date', value: e.date, 'aria-label': '날짜', onchange: ev => { e.date = ev.target.value || todayStr(); keep(); redraw(); } });
       const sum = el('input', { class: 'nw-sum', type: 'text', maxlength: '200', value: e.summary, autocomplete: 'off', placeholder: '목록에 보일 한 줄 요약(비우면 본문 첫 문단)', 'aria-label': '목록에 보이는 요약', oninput: ev => onIn('summary', ev) });
       const ta = el('textarea', { class: 'nw-text', maxlength: '20000', 'aria-label': '본문', placeholder: '여기에 글을 써 보세요', oninput: ev => { e.body = ev.target.value; keep(); } });
@@ -124,9 +131,12 @@
       const future = e.date > todayStr();
       if (!st.prev) {
         kids.push(el('div', { class: 'nw-paper' }, title,
-          el('div', { class: 'nw-meta-row' }, date, tag, tags),
-          future ? el('p', { class: 'hint' }, dayText(e.date) + '부터 소식에 보여요.') : null,
+          st.v >= 2 ? el('div', { class: 'nw-meta-row', role: 'group', 'aria-label': '글 종류' }, kindBtn('공지'), kindBtn('개발 노트'), isNote ? app : null) : null,
+          el('div', { class: 'nw-meta-row' }, isNote ? null : date, tag, tags),
+          future && !isNote ? el('p', { class: 'hint' }, dayText(e.date) + '부터 소식에 보여요.') : null,
           el('details', { class: 'nw-sumbox', open: !!e.summary }, el('summary', null, '요약 넣기(선택)'), sum),
+          st.v >= 2 ? el('details', { class: 'nw-sumbox', open: !!e.source }, el('summary', null, '참고 자료(선택)'), src) : null,
+          e.imagesN ? el('p', { class: 'hint' }, '앱 화면 사진 ' + e.imagesN + '장이 붙어 있어요. 여기서는 바꿀 수 없고 그대로 유지돼요.') : null,
           tools, ta));
       } else {
         kids.push(el('div', { class: 'nw-paper nw-prev' },
@@ -157,17 +167,18 @@
       return el('div', { class: 'card aa-card' + (it.status === '임시' ? ' stopped' : '') },
         el('div', { class: 'aa-head' }, el('b', null, it.title)),
         el('div', { class: 'aa-head' }, el('span', { class: it.live ? 'own-tag' : 'ch-todo warn' }, statusText(it)),
-          el('span', { class: 'hint nw-meta' }, [dayText(it.date), it.tag || null].filter(Boolean).join(' · '))),
+          el('span', { class: 'hint nw-meta' }, (it.kind === '개발 노트' ? [it.app || null, it.tag || null] : [dayText(it.date), it.tag || null]).filter(Boolean).join(' · '))),
         el('div', { class: 'aa-acts' }, el('button', { class: 'btn small', type: 'button', onclick: () => open(it) }, '고치기'), live(it) ? link(it) : null));
     }
 
     function build() {
       if (st.ed) return editor();
-      const kids = [UI.withInfo(el('h1', null, '소식'), ['여기서 쓴 글은 koinobia.com의 소식 탭에 올라가요.', 'news.js에 원래 있던 글은 여기서 고칠 수 없어요(그대로 같이 보여요).'], { label: '소식 도움말' })];
+      const kids = [UI.withInfo(el('h1', null, '소식'), ['여기서 쓴 글은 koinobia.com의 소식 탭에 올라가요.', '공지는 날짜가 최근인 순서로, 개발 노트는 날짜 없이 앱 이름과 참고 자료를 달아 공지 아래에 보여요.', 'news.js에만 있고 서버로 옮기지 않은 글은 여기서 고칠 수 없어요(그대로 같이 보여요).'], { label: '소식 도움말' })];
       if (st.error) { kids.push(el('div', { class: 'card' }, el('p', { class: 'msg' }, st.error))); return kids; }
+      if (st.v < 2) kids.push(el('div', { class: 'card aa-card' }, el('p', { class: 'msg' }, 'news.js에 있던 기존 글을 여기서 고치고 싶다면 서버 SQL 046을 넣어 주세요(docs/setup.md). 넣기 전에는 공지만 쓸 수 있어요.')));
       kids.push(el('p', { class: 'aa-sum' }, '올라간 글 ' + st.items.filter(live).length + '개 · 임시·예약 ' + st.items.filter(x => !live(x)).length + '개'));
       if (st.done) kids.push(el('div', { class: 'card aa-card' }, el('p', { class: 'msg', role: 'status' }, st.done.msg),
-        st.done.id && st.items.some(x => x.id === st.done.id && x.live) ? el('div', { class: 'actions' }, link({ id: st.done.id })) : null));
+        st.done.id && st.items.some(x => x.id === st.done.id && x.live) ? el('div', { class: 'actions' }, link({ slug: st.done.slug })) : null));
       const b = mem.get();
       if (b && (b.title || b.body)) kids.push(el('div', { class: 'card aa-card' }, el('p', { class: 'msg' }, '쓰던 글이 이 기기에 남아 있어요' + (b.title ? ': ' + b.title : '') + '.'),
         el('div', { class: 'actions' },
@@ -175,7 +186,11 @@
           el('button', { class: 'btn small ghost', type: 'button', onclick: () => { mem.clear(); redraw(); } }, '지우기'))));
       kids.push(el('div', { class: 'actions nw-new' }, el('button', { class: 'btn', type: 'button', onclick: () => open(null) }, '새 글 쓰기')));
       if (!st.items.length) kids.push(el('div', { class: 'card' }, el('p', { class: 'msg us-empty' }, '아직 여기서 쓴 글이 없어요.')));
-      else kids.push(el('div', { class: 'aa-grid' }, ...st.items.map(row)));
+      else {
+        const group = (name, list) => list.length ? [el('h2', { class: 'nw-group' }, name + ' ' + list.length), el('div', { class: 'aa-grid' }, ...list.map(row))] : [];
+        const notes = st.items.filter(x => x.kind === '개발 노트');
+        kids.push(...group('공지', st.items.filter(x => x.kind !== '개발 노트')), ...group('개발 노트', notes));
+      }
       return kids;
     }
 

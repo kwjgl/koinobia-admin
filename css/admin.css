@@ -408,6 +408,12 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .nw-foot { margin: 14px 4px 0; display: flex; flex-direction: column; gap: 6px; }
 .nw-foot .hint { margin: 0; }
 .nw-new { margin: 12px 0 14px; }
+.nw-group { margin: 22px 0 10px; font-size: .95em; color: var(--ink-2); }
+.nw-kind { border: 0; cursor: pointer; font-weight: 600; }
+.nw-kind[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+select.nw-pill { appearance: auto; }
+.nw-src { display: block; width: 100%; margin-top: 4px; padding: .5em 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; resize: vertical; }
+.nw-src:focus { outline: none; }
 .nw-meta { margin: 0; }
 .nw-prev h2 { font-family: var(--f-display); font-size: 1.6em; line-height: 1.35; overflow-wrap: anywhere; margin: .3em 0 0; }
 .nw-prev .hint { margin: 0; }

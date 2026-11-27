@@ -154,7 +154,9 @@
     dbSize: () => rpc('admin_db_size'),
     // 소식 글(045). 대문 사이트에 올릴 공개 글이라 기록 내용이 아니다. 서버 SQL 045가 없으면 code:'sql'로 실패한다. 날짜는 'YYYY-MM-DD'
     newsList: () => rpc('admin_news_list'),
-    newsSave: a => rpc('admin_news_save', { p_id: a.id || null, p_title: a.title, p_tag: a.tag || '', p_summary: a.summary || '', p_body: a.body, p_date: a.date || null, p_status: a.status }),
+    // 종류(공지·개발 노트)·앱 이름·참고 자료는 서버 SQL 046부터다. a.old(목록에 v가 없는 045 서버)면 보내지 않는다
+    newsSave: a => rpc('admin_news_save', Object.assign({ p_id: a.id || null, p_title: a.title, p_tag: a.tag || '', p_summary: a.summary || '', p_body: a.body, p_date: a.date || null, p_status: a.status },
+      a.old ? {} : { p_kind: a.kind || '공지', p_app: a.app || '', p_source: a.source || '' })),
     newsDelete: id => rpc('admin_news_delete', { p_id: id }),
     // 서버 SQL 준비 상태 점검. 이미 쓰는 읽기 함수를 하나씩 불러 보고 'ok'(있음)·'missing'(없음)·'unknown'(확인 못 함)만 돌려준다. 아무것도 바꾸지 않는다
     async serverCheck() {
@@ -166,7 +168,8 @@
         ['040', '이용 통계: 핵심 지표·이상 신호·묶음 비교', () => rpc('admin_usage_alerts')],
         ['041', '이용 통계: 연구 탭', () => rpc('admin_usage_codebook')],
         ['042', '교회 이용 단계와 기간', async () => { const t = await rpc('admin_today'); need('plan_ending' in (t || {})); }],
-        ['045', '소식 글 쓰기', () => rpc('admin_news_list')]
+        ['045', '소식 글 쓰기', () => rpc('admin_news_list')],
+        ['046', '소식: 기존 글 옮기기·개발 노트', async () => { const r = await rpc('admin_news_list'); need(Number(r && r.v) >= 2); }]
       ];
       return Promise.all(probes.map(async ([num, use, call]) => {
         try { await call(); return { num, use, state: 'ok' }; }
