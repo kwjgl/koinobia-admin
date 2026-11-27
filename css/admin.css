@@ -95,7 +95,7 @@ label.f { display: block; font-size: .85em; font-weight: 600; margin: 12px 0 4px
 .actions { display: flex; gap: .5em; flex-wrap: wrap; align-items: center; }
 .link.quiet { color: var(--ink-2); font-weight: 500; }
 .label { font-size: .82em; font-weight: 600; color: var(--ink-2); margin: 0; }
-.aa-add { display: flex; align-items: center; justify-content: center; gap: .4em; min-height: 150px; border: 1.5px dashed var(--line-strong); border-radius: 16px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.aa-add { display: flex; align-items: center; justify-content: center; gap: .4em; width: 100%; min-height: 150px; border: 1.5px dashed var(--line-strong); border-radius: 16px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
 .aa-add span { font-size: 1.4em; line-height: 1; }
 .aa-add:hover, .aa-add:focus-visible { background: var(--surface); border-color: var(--accent); }
 .aa-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: .8em; border-top: 1px solid var(--line); }
@@ -137,7 +137,7 @@ a.td-row > :first-child { flex: 1 1 auto; }
 .ch-bar { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .ch-bar .fb-bar { margin-bottom: 0; }
 .ch-bar .fb-bar[hidden] { display: none; }
-.aa-grid + .aa-add, .card + .aa-add, .ch-list + .aa-add { width: 100%; margin-top: 14px; min-height: 64px; }
+.aa-grid + .aa-add, .card + .aa-add, .ch-list + .aa-add { margin-top: 14px; min-height: 64px; }
 
 /* 의견함·공동체·저장 공간 */
 .fb-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
@@ -261,6 +261,11 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .us-empty { text-align: center; color: var(--ink-2); padding: 1.2em .5em; border: 1.5px dashed var(--line-strong); border-radius: 12px; background: transparent; }
 
 /* 도움말(? 단추와 팝오버). 위치는 .tip-row 기준 CSS 클래스로만 잡는다(style 속성 없음) */
+.tip-row:has(> .eyebrow) { margin: 1.6em 0 .3em; }
+.tip-row > .eyebrow { margin: 0; }
+.sv-check .ap-info { margin-top: 12px; }
+.sv-check .hint { margin-top: 10px; }
+.actions > .link:first-child, .actions > .tip-row:first-child > .link { padding-left: 0; }
 .tip-row { position: relative; display: flex; align-items: center; gap: .35em; min-width: 0; max-width: 100%; }
 .tip { display: inline-flex; }
 .tip-btn { position: relative; flex: none; width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); background: transparent; color: var(--ink-2); font-size: .75rem; font-weight: 700; line-height: 1; cursor: pointer; }
@@ -269,6 +274,7 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .tip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tip-pop { position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; width: max-content; max-width: min(22em, calc(100vw - 64px)); padding: .6em .8em; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 0 0 3px var(--surface-2); font-size: .85rem; font-weight: 400; line-height: 1.55; text-align: left; }
 .tip-pop.up { top: auto; bottom: calc(100% + 6px); }
+.tip-pop.left { left: auto; right: 0; }
 .tip-pop[hidden] { display: none; }
 .tip-pop p { margin: 0; }
 .tip-pop p + p { margin-top: .5em; }
@@ -290,6 +296,11 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .sw-row > .aa-link { flex-basis: 100%; }
 .sw-row > .aa-link > .msg { margin: 0; }
 .sw-row > .aa-link > .msg + .msg { margin-top: -.3em; }
+/* 값이 늘 같은 폭으로 나뉘는 세그먼트(이용 단계 등): 단추 폭을 똑같이 */
+.sw-seg.eq { display: flex; width: 100%; }
+.sw-seg.eq .sw-opt { flex: 1 1 0; min-width: 0; }
+.ch-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 .6em; margin: 1.6em 0 .3em; }
+.ch-head .eyebrow { margin: 0; }
 @media (max-width: 699px) { .sw-seg { width: 100%; } .sw-opt { flex: 1 1 0; min-width: 0; } }
 
 /* 그래프 값 말풍선(마우스 올림·탭·키보드). 색은 코이데 변수만 쓴다 */

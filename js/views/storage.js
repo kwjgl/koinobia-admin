@@ -34,7 +34,7 @@
   // 서버 준비 상태: 단추를 눌렀을 때만 읽기 함수를 불러 본다. 없는 번호는 pray-for supabase 폴더에서 넣는다
   const STATE = { ok: '있음', missing: '없음', unknown: '확인하지 못했어요' };
   function serverCard() {
-    const box = el('div', { class: 'card' });
+    const box = el('div', { class: 'card sv-check' });
     let busy = false, res = null;
     const paint = () => {
       const go = el('button', { class: 'btn small ghost', type: 'button', disabled: busy, onclick: run }, busy ? '점검 중…' : res ? '다시 점검하기' : '점검하기');

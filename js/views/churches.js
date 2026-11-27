@@ -172,7 +172,7 @@
       let plan = PLANS.includes(c.plan) ? c.plan : '시범';
       const segBtns = PLANS.map(p => el('button', { class: 'sw-opt', type: 'button', 'aria-pressed': String(p === plan), 'data-plan': p,
         onclick: () => { plan = p; segBtns.forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-plan') === plan))); } }, p));
-      const seg = el('div', { class: 'sw-seg', role: 'group', 'aria-label': '이용 단계' }, ...segBtns);
+      const seg = el('div', { class: 'sw-seg eq', role: 'group', 'aria-label': '이용 단계' }, ...segBtns);
       const until = el('input', { class: 'field', type: 'date', value: c.plan_until || '', 'aria-label': '이용 기간 끝나는 날' });
       const clear = el('button', { class: 'link quiet', type: 'button', onclick: () => { until.value = ''; } }, '기간 없음');
       const note = el('input', { class: 'field', type: 'text', maxlength: '200', value: c.plan_note || '', autocomplete: 'off', placeholder: '입금 확인 2026-11-20', 'aria-label': '메모(운영자만 봐요)' });
@@ -378,13 +378,9 @@
       const kids = [el('h1', null, '교회'),
         el('p', { class: 'eyebrow' }, '스위치'),
         el('div', { class: 'card sw-list' }, ...SWITCHES.filter(([k]) => k !== 'didako_community_open' || st.sw.some(x => x.key === k)).map(([k, n, d]) => switchRow(k, n, d))),
-        headNode];
+        el('div', { class: 'ch-head' }, headNode, st.list.length ? (csvBtn = el('button', { class: 'link', type: 'button', onclick: downloadCsv }, 'CSV 내려받기')) && UI.withInfo(csvBtn, '지금 보이는 교회를 만든 순서로 파일에 담아요(운영용). 이용 단계 메모는 운영자만 보는 글이라 파일을 다른 사람에게 보내지 마세요. 회원 수 같은 합계와 사람 이름·연락처는 들어 있지 않아요.', { label: 'CSV 도움말', left: true }) : null)];
       if (st.list.length) kids.push(...filterBar());
       kids.push(listNode);
-      if (st.list.length) {
-        csvBtn = el('button', { class: 'link', type: 'button', onclick: downloadCsv }, 'CSV 내려받기(운영용)');
-        kids.push(el('div', { class: 'actions ch-csv' }, UI.withInfo(csvBtn, '지금 보이는 교회를 만든 순서로 담아요. 이용 단계 메모는 운영자만 보는 글이라 파일을 다른 사람에게 보내지 마세요. 회원 수 같은 합계와 사람 이름·연락처는 들어 있지 않아요.', { label: 'CSV 도움말' })));
-      }
       kids.push(st.add ? addForm() : el('button', { class: 'aa-add', type: 'button', onclick: () => { st.add = true; redraw(); } }, el('span', null, '+'), '교회 만들기'));
       const lb = logBox(); if (lb) kids.push(lb);
       paintFilter();
