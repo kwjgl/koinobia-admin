@@ -143,7 +143,7 @@
     churchInvite: id => rpc('admin_church_invite', { p_id: id }),
     settingList: () => rpc('admin_setting_list'),
     settingSet: (key, value) => rpc('admin_setting_set', { p_key: key, p_value: value }),
-    logList: () => rpc('admin_log_list', { p_limit: 50 }),
+    logList: limit => rpc('admin_log_list', { p_limit: limit || 50 }),
     // 의견함·공동체 점검·저장 공간(036). 의견·신고 글은 운영자가 읽으라고 받은 것이라 화면 메모리에서만 쓴다
     feedbackList: (limit, unreadOnly) => rpc('admin_feedback_list', { p_limit: limit, p_unread_only: !!unreadOnly }),
     feedbackRead: id => rpc('admin_feedback_mark_read', { p_id: id }),

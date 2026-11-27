@@ -38,7 +38,9 @@
   ];
   const settings = { church_open: 'admins', church_apply: 'on', community_open: 'on', usage_track: 'off', didako_community_open: 'admins' };
   const allowed = { church_open: ['off', 'admins', 'on'], church_apply: ['off', 'admins', 'on'], community_open: ['off', 'admins', 'on'], usage_track: ['on', 'off'], didako_community_open: ['off', 'admins', 'on'] };
-  const logs = [{ at: '2026-11-18T09:30:00+09:00', action: 'setting', target: 'church_apply=on' }, { at: '2026-11-17T20:05:00+09:00', action: 'church-create', target: 'c3' }];
+  const logs = [{ at: '2026-11-18T09:30:00+09:00', action: 'setting', target: 'church_apply=on' }, { at: '2026-11-17T20:05:00+09:00', action: 'church-create', target: 'c3' },
+    { at: '2026-11-16T11:00:00+09:00', action: 'church-plan', target: 'c4=무료' }, { at: '2026-11-15T10:20:00+09:00', action: 'church-state', target: 'c2=멈춤' },
+    { at: '2026-11-14T16:45:00+09:00', action: 'invite', target: 'c4' }, { at: '2026-11-12T09:10:00+09:00', action: 'setting', target: 'usage_track=off' }, { at: '2025-12-30T09:00:00+09:00', action: 'church-rename', target: 'c1' }];
   const putLog = (action, target) => { logs.unshift({ at: new Date().toISOString(), action, target }); };
   churches.forEach(c => c.codes.forEach(x => usedCodes.push(x.code)));
   const normCode = v => String(v || '').toUpperCase().replace(/[^A-Z0-9가-힣]/g, '');
@@ -451,7 +453,7 @@
         if (name === 'admin_db_size') return ok(dbSize());
         if (name === 'admin_church_list') return ok(cList());
         if (name === 'admin_setting_list') return ok(sList());
-        if (name === 'admin_log_list') return ok({ items: JSON.parse(JSON.stringify(logs)) });
+        if (name === 'admin_log_list') return ok({ items: JSON.parse(JSON.stringify(logs.slice(0, Math.min(200, Number(a.p_limit) || 50)))) });
         if (name === 'admin_setting_set') {
           if (!allowed[a.p_key]) throw bad('바꿀 수 없는 스위치예요.');
           if (!allowed[a.p_key].includes(a.p_value)) throw bad('값은 ' + allowed[a.p_key].join(', ') + ' 중 하나예요.');

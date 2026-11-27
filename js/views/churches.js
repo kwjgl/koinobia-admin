@@ -24,6 +24,7 @@
     'church-create': '교회 만듦', 'church-rename': '이름 고침', 'church-plan': '이용 단계 기록', 'church-state': '멈춤·풀기', 'code-add': '코드 더함',
     'code-stop': '코드 멈춤', 'code-open': '코드 풀기', invite: '초대 링크 만듦', setting: '스위치 바꿈'
   };
+  const LOG_STEPS = [50, 100, 200];
   const PLANS = ['시범', '무료', '유료'];
   const PLAN_HELP = '이용 단계를 기록만 해요. 아직 기능을 막지는 않아요. 입금을 확인한 뒤 손으로 바꿔요.';
   const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -47,7 +48,7 @@
 
   function render(first) {
     const st = { sw: first.settings.items || [], list: first.churches.items || [], log: first.log && first.log.items || null,
-      open: {}, invite: {}, ask: {}, pick: {}, swAsk: null, busy: false, add: false, q: '', f: '' };
+      open: {}, invite: {}, ask: {}, pick: {}, swAsk: null, busy: false, add: false, q: '', f: '', logKind: '', logLimit: LOG_STEPS[0], logBusy: false, logErr: '', logOpen: false };
     // 오늘 화면에서 온 링크(#/church?f=ended)를 읽는다. 허용된 값만 쓰고 주소는 깨끗이 되돌린다
     const hm = /^#\/church\?(.*)$/.exec(location.hash);
     if (hm) {
@@ -64,7 +65,8 @@
       }
     };
     // 운영 기록만 따로 바꾼다(입력 중인 칸이 지워지지 않게 전체를 다시 그리지 않는다)
-    const reloadLog = () => api.logList().then(r => { st.log = r.items || []; const o = sec.querySelector('.aa-log'), n = logBox(); if (o && n) { n.open = o.open; o.replaceWith(n); } }, () => {});
+    const refreshLogBox = () => { const o = sec.querySelector('.aa-log'), n = logBox(); if (o && n) { n.open = o.open; o.replaceWith(n); } };
+    const reloadLog = () => api.logList(st.logLimit).then(r => { st.log = r.items || []; refreshLogBox(); }, () => {});
     // 쓰기 하나: 성공하면 apply(결과)로 상태를 바꾸고 다시 그린다. 실패하면 오류 글을 보인다
     async function act(errNode, call, apply, okMsg) {
       if (st.busy) return;
@@ -279,11 +281,43 @@
           UI.withInfo(el('label', { class: 'f' }, '코드'), '영문·숫자·한글 3~30자. 소문자는 대문자로 저장돼요.', { label: '코드 도움말' }), code, prev, el('label', { class: 'f' }, '첫 부서 이름'), dept, err, actions));
     }
 
+    // 운영 기록: 종류로 거르고 50 → 100 → 200건까지 더 본다. 대상은 아는 교회 이름·스위치 이름으로 풀어 쓰고, 모르면 서버 글 그대로 둔다
+    function logWhen(v) {
+      const d = new Date(v);
+      if (isNaN(d)) return String(v || '');
+      return (d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '년 ' : '') + when(v, true);
+    }
+    function logTarget(t) {
+      const x = String(t || '');
+      if (!x) return '';
+      const eq = x.indexOf('='), left = eq < 0 ? x : x.slice(0, eq), right = eq < 0 ? '' : x.slice(eq + 1);
+      const ch = st.list.find(c => c.id === left), sw = SWITCHES.find(y => y[0] === left);
+      const name = ch ? ch.name : sw ? sw[1] : left;
+      return right ? name + ' → ' + (SW[right] || right) : name;
+    }
     function logBox() {
       if (!st.log) return null;
-      return el('details', { class: 'card aa-log' }, el('summary', null, '최근 바꾼 일'),
-        st.log.length ? el('ul', { class: 'aa-loglist' }, ...st.log.map(x => el('li', null, el('span', { class: 'hint' }, when(x.at, true)), ' ' + (ACTION[x.action] || x.action) + (x.target ? ' · ' + x.target : ''))))
-          : el('p', { class: 'hint' }, '아직 바꾼 일이 없어요.'));
+      const kinds = [...new Set(st.log.map(x => x.action))];
+      if (st.logKind && !kinds.includes(st.logKind)) st.logKind = '';
+      const shown = st.logKind ? st.log.filter(x => x.action === st.logKind) : st.log;
+      const kids = [el('summary', null, '최근 바꾼 일')];
+      if (kinds.length > 1) kids.push(el('div', { class: 'aa-acts fb-bar', role: 'group', 'aria-label': '운영 기록 종류 거르기' },
+        el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(st.logKind === ''), onclick: () => { st.logKind = ''; refreshLogBox(); } }, '전체'),
+        ...kinds.map(k => el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(st.logKind === k), onclick: () => { st.logKind = k; refreshLogBox(); } }, (ACTION[k] || k) + ' ' + st.log.filter(x => x.action === k).length))));
+      kids.push(shown.length ? el('ul', { class: 'aa-loglist' }, ...shown.map(x => el('li', null, el('span', { class: 'hint' }, logWhen(x.at)), ' ' + (ACTION[x.action] || x.action) + (x.target ? ' · ' + logTarget(x.target) : ''))))
+        : el('p', { class: 'hint' }, '아직 바꾼 일이 없어요.'));
+      if (st.logErr) kids.push(el('p', { class: 'aa-err', role: 'alert' }, st.logErr));
+      if (st.log.length >= st.logLimit) {
+        const next = LOG_STEPS.find(v => v > st.logLimit);
+        kids.push(next ? el('button', { class: 'btn small ghost', type: 'button', disabled: st.logBusy, onclick: async () => {
+          st.logBusy = true; st.logErr = ''; refreshLogBox();
+          try { const r = await api.logList(next); st.log = r.items || []; st.logLimit = next; } catch (e) { st.logErr = e.message || '더 불러오지 못했어요.'; }
+          st.logBusy = false; refreshLogBox();
+        } }, '더 보기') : el('p', { class: 'hint' }, '가장 최근 ' + st.logLimit + '건까지 보여 줘요.'));
+      }
+      const box = el('details', { class: 'card aa-log', open: st.logOpen ? true : null }, ...kids);
+      box.addEventListener('toggle', () => { st.logOpen = box.open; });   // 다시 그려도 열고 닫은 상태를 기억한다
+      return box;
     }
 
     // ---- 거르기와 이름 찾기 ----
