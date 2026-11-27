@@ -209,7 +209,6 @@
         const sr = act && act.series || [];
         const vals = sr.map(x => C.pick(x.active, 'n')), seen = vals.filter(v => v != null);
         if (seen.length) {
-          C.setWidth(out.clientWidth || 320);
           out.append(el('p', { class: 'us-sum-sub' }, '하루에 활동한 사람'));
           out.append(C.figure({ svg: C.line(sr.map(x => C.plabel(x.period, 'day')), [{ name: '활동한 사람', values: vals }], { area: true, unit: '명', full: sr.map(x => C.plong(x.period, 'day')), label: '하루에 활동한 사람 꺾은선 그래프. 기간 ' + sr.length + '일, 보이는 값은 ' + Math.min(...seen) + '명에서 ' + Math.max(...seen) + '명' }) }));
           lines.push('', '하루에 활동한 사람: 가장 적은 날 ' + Math.min(...seen) + '명, 가장 많은 날 ' + Math.max(...seen) + '명');

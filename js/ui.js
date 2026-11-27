@@ -24,12 +24,12 @@
     t.pop.hidden = !on; t.btn.setAttribute('aria-expanded', String(on));
     cur = on ? t : (cur === t ? null : cur);
   }
-  // info(글 또는 글 배열, {up, label}) → span.tip. 반드시 .tip-row 안에서 쓴다(withInfo가 감싼다)
+  // info(글 또는 글 배열, {up, left, label}) — left: 오른쪽 끝에 놓인 도움말은 팝오버를 왼쪽으로 펼친다 → span.tip. 반드시 .tip-row 안에서 쓴다(withInfo가 감싼다)
   function info(text, o) {
     o = o || {};
     const id = 'tip-' + (++seq), paras = [].concat(text);
     const btn = el('button', { class: 'tip-btn', type: 'button', 'aria-expanded': 'false', 'aria-controls': id, 'aria-label': o.label || '도움말' }, '?');
-    const pop = el('div', { class: 'tip-pop' + (o.up ? ' up' : ''), id, role: 'tooltip', hidden: true }, ...paras.map(p => el('p', null, p)));
+    const pop = el('div', { class: 'tip-pop' + (o.up ? ' up' : '') + (o.left ? ' left' : ''), id, role: 'tooltip', hidden: true }, ...paras.map(p => el('p', null, p)));
     const t = { btn, pop, pinned: false, hover: false };
     btn.addEventListener('click', () => { if (t.pinned || t.hover) t.pinned = t.hover = false; else t.pinned = true; paint(t); });
     btn.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { t.hover = true; paint(t); } });
