@@ -380,13 +380,36 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
   .card { break-inside: avoid; }
 }
 
-/* 소식 글쓰기 */
-.nw-body { min-height: 16em; resize: vertical; line-height: 1.7; font: inherit; }
-.nw-tools { margin-bottom: 8px; }
-.nw-acts { margin-top: 4px; }
+/* 소식 글쓰기: 노트 앱처럼 종이 한 장에 큰 제목과 본문, 가는 아이콘 도구 */
+.nw-ed { max-width: 760px; margin: 0 auto; }
+.nw-bar { display: flex; align-items: center; gap: 6px; margin: 0 0 14px; }
+.nw-sp { flex: 1 1 auto; }
+.nw-ib { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.nw-ib:hover { background: var(--surface-2); color: var(--ink); }
+.nw-ib[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.nw-ib:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nw-ic { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nw-paper { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px 32px 32px; }
+@media (max-width: 699px) { .nw-paper { padding: 22px 20px 26px; } }
+.nw-title { display: block; width: 100%; padding: 0; border: 0; background: transparent; font-family: var(--f-display); font-size: 1.7em; line-height: 1.35; font-weight: 700; color: var(--ink); resize: none; overflow: hidden; field-sizing: content; }
+.nw-title::placeholder, .nw-text::placeholder, .nw-sum::placeholder { color: var(--line-strong); }
+.nw-title:focus, .nw-text:focus, .nw-sum:focus { outline: none; }
+.nw-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 0; }
+.nw-pill { min-height: 36px; padding: 0 .85em; border: 0; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: .88em; }
+.nw-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nw-meta-row input[type="text"] { width: 9em; }
+.nw-sumbox { margin: 12px 0 0; font-size: .88em; color: var(--ink-2); }
+.nw-sumbox summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.nw-sum { display: block; width: 100%; margin-top: 4px; padding: .5em 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); }
+.nw-tools { margin: 18px 0 6px; padding: 6px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); justify-content: space-between; }
+.nw-tools-in { display: flex; flex-wrap: wrap; gap: 2px; }
+.nw-text { display: block; width: 100%; min-height: 50vh; margin-top: 14px; padding: 0; border: 0; background: transparent; resize: none; font: inherit; font-size: 1.05em; line-height: 1.85; color: var(--ink); field-sizing: content; }
+.nw-go { margin-left: 4px; }
+.nw-foot { margin: 14px 4px 0; display: flex; flex-direction: column; gap: 6px; }
+.nw-foot .hint { margin: 0; }
 .nw-new { margin: 12px 0 14px; }
 .nw-meta { margin: 0; }
-.nw-prev h2 { font-family: var(--f-display); font-size: 1.3em; line-height: 1.35; overflow-wrap: anywhere; }
+.nw-prev h2 { font-family: var(--f-display); font-size: 1.6em; line-height: 1.35; overflow-wrap: anywhere; margin: .3em 0 0; }
 .nw-prev .hint { margin: 0; }
 .md { overflow-wrap: anywhere; word-break: keep-all; line-height: 1.75; }
 .md p, .md ul, .md ol { margin: .8em 0 0; }
@@ -396,3 +419,5 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
 .md b { font-weight: 600; }
 .md a { color: var(--accent); }
 .md blockquote { margin: .9em 0 0; padding: .8em 1em; border-left: 3px solid var(--accent-mid); background: var(--surface-2); border-radius: 0 12px 12px 0; }
+.nw-tools .nw-ib { width: 40px; }
+@media (max-width: 499px) { .nw-tools .nw-ib { width: 36px; } .nw-tools-in { gap: 0; } }

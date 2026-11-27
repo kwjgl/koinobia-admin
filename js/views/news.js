@@ -16,6 +16,20 @@
     set(v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* 저장이 안 되어도 글쓰기는 된다 */ } },
     clear() { try { localStorage.removeItem(KEY); } catch (e) { /* 없는 것으로 본다 */ } }
   };
+  // 가는 선 아이콘(SVG는 DOM으로 만든다. innerHTML 없음)
+  const IC = {
+    bold: ['M7 5h6a3.5 3.5 0 0 1 0 7H7z', 'M7 12h7.5a3.5 3.5 0 0 1 0 7H7z'], italic: ['M10 5h8', 'M6 19h8', 'M15 5l-6 14'],
+    heading: ['M6 5v14', 'M18 5v14', 'M6 12h12'], ul: ['M9 6h11', 'M9 12h11', 'M9 18h11', 'M4.5 6h.01', 'M4.5 12h.01', 'M4.5 18h.01'],
+    ol: ['M10 6h10', 'M10 12h10', 'M10 18h10', 'M4 5l1.6-1v5', 'M4 14.5c.4-.9 3-1 3 .5 0 1-3 2-3 3h3'], quote: ['M5 6v12', 'M10 8h9', 'M10 12h9', 'M10 16h6'],
+    link: ['M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1', 'M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1'],
+    eye: ['M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z', 'M12 9.5a2.5 2.5 0 1 0 .01 0'], back: ['M15 5l-7 7 7 7']
+  };
+  function icon(paths) {
+    const NS = 'http://www.w3.org/2000/svg', s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'nw-ic'); s.setAttribute('aria-hidden', 'true');
+    paths.forEach(d => { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); s.append(p); });
+    return s;
+  }
   const blank = () => ({ id: null, title: '', tag: '공지', summary: '', date: todayStr(), body: '', status: '임시' });
 
   // d: {items} 또는 {error} (서버 SQL이 없을 때)
@@ -78,60 +92,65 @@
 
     function editor() {
       const e = st.ed, kids = [];
-      const field = (label, node, help) => [UI.withInfo(el('label', { class: 'f' }, label), help, { label: label + ' 도움말' }), node];
+      const wasLive = !!(e.id && st.items.some(x => x.id === e.id && x.status === '올림'));
       const keep = () => mem.set(e);   // 쓰는 중에 화면을 옮겨도 이어 쓸 수 있게 이 기기에 잠깐 기억
       const onIn = (k, ev) => { e[k] = ev.target.value; keep(); };
-      const title = el('input', { class: 'field', type: 'text', maxlength: '100', value: e.title, autocomplete: 'off', placeholder: '소식 제목', 'aria-label': '제목', oninput: ev => onIn('title', ev) });
-      const tag = el('input', { class: 'field', type: 'text', maxlength: '20', value: e.tag, list: 'aa-news-tags', autocomplete: 'off', placeholder: '공지', 'aria-label': '꼬리표', oninput: ev => onIn('tag', ev) });
+      const ib = (ic, label, fn, pressed) => el('button', { class: 'nw-ib', type: 'button', 'aria-label': label, title: label, 'aria-pressed': pressed == null ? null : String(pressed), onclick: fn }, icon(IC[ic]));
+      // 제목은 길면 줄이 바뀌도록 칸을 늘려 보인다(Enter는 줄바꿈 대신 본문으로 넘어간다)
+      const title = el('textarea', { class: 'nw-title', rows: '1', maxlength: '100', placeholder: '제목', 'aria-label': '제목', oninput: ev => { ev.target.value = ev.target.value.replace(/\n/g, ' '); onIn('title', ev); },
+        onkeydown: ev => { if (ev.key === 'Enter') { ev.preventDefault(); ta.focus(); } } });
+      title.value = e.title;
+      const tag = el('input', { class: 'nw-pill', type: 'text', maxlength: '20', value: e.tag, list: 'aa-news-tags', size: '8', autocomplete: 'off', placeholder: '꼬리표', 'aria-label': '꼬리표(제목 옆 작은 표시)', oninput: ev => onIn('tag', ev) });
       const tags = el('datalist', { id: 'aa-news-tags' }, ...TAGS.map(t => el('option', { value: t })));
-      const date = el('input', { class: 'field', type: 'date', value: e.date, 'aria-label': '날짜', onchange: ev => { e.date = ev.target.value || todayStr(); keep(); redraw(); } });
-      const sum = el('input', { class: 'field', type: 'text', maxlength: '200', value: e.summary, autocomplete: 'off', placeholder: '비우면 본문 첫 문단이 들어가요', 'aria-label': '목록에 보이는 요약', oninput: ev => onIn('summary', ev) });
-      const ta = el('textarea', { class: 'field nw-body', rows: '16', maxlength: '20000', 'aria-label': '본문', placeholder: '여기에 글을 써요. 마크다운을 몰라도 위의 단추로 꾸밀 수 있어요.', oninput: ev => { e.body = ev.target.value; keep(); } });
+      const date = el('input', { class: 'nw-pill', type: 'date', value: e.date, 'aria-label': '날짜', onchange: ev => { e.date = ev.target.value || todayStr(); keep(); redraw(); } });
+      const sum = el('input', { class: 'nw-sum', type: 'text', maxlength: '200', value: e.summary, autocomplete: 'off', placeholder: '목록에 보일 한 줄 요약(비우면 본문 첫 문단)', 'aria-label': '목록에 보이는 요약', oninput: ev => onIn('summary', ev) });
+      const ta = el('textarea', { class: 'nw-text', maxlength: '20000', 'aria-label': '본문', placeholder: '여기에 글을 써 보세요', oninput: ev => { e.body = ev.target.value; keep(); } });
       ta.value = e.body;
-      const tb = el('div', { class: 'aa-acts fb-bar nw-tools', role: 'group', 'aria-label': '꾸미기' },
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => wrap(ta, '**', '**', '굵게') }, '굵게'),
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => wrap(ta, '*', '*', '기울임') }, '기울임'),
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => prefix(ta, '### ') }, '작은 제목'),
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => prefix(ta, '- ') }, '점 목록'),
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => prefix(ta, i => (i + 1) + '. ') }, '번호 목록'),
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => prefix(ta, '> ') }, '인용'),
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => link2(ta) }, '링크'));
-      const tabs = el('div', { class: 'aa-acts fb-bar', role: 'group', 'aria-label': '쓰기와 미리보기' },
-        el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(!st.prev), onclick: () => { st.prev = false; redraw(); } }, '쓰기'),
-        el('button', { class: 'btn small ghost', type: 'button', 'aria-pressed': String(st.prev), onclick: () => { st.prev = true; redraw(); } }, '미리보기'));
-      kids.push(el('h1', null, e.id ? '소식 글 고치기' : '새 소식 글'));
-      kids.push(el('p', { class: 'hint' }, '누구나 볼 수 있는 글이에요. 사람 이름·교회 이름·기도제목은 쓰지 마세요.'));
+      const tools = el('div', { class: 'tip-row nw-tools' },
+        el('div', { class: 'nw-tools-in', role: 'group', 'aria-label': '꾸미기' },
+          ib('bold', '굵게', () => wrap(ta, '**', '**', '굵게')), ib('italic', '기울임', () => wrap(ta, '*', '*', '기울임')),
+          ib('heading', '작은 제목', () => prefix(ta, '### ')), ib('ul', '점 목록', () => prefix(ta, '- ')),
+          ib('ol', '번호 목록', () => prefix(ta, i => (i + 1) + '. ')), ib('quote', '인용', () => prefix(ta, '> ')), ib('link', '링크', () => link2(ta))),
+        UI.info(['날짜를 앞으로 고르면 그날부터 소식에 보여요(예약).', ...HELP], { label: '글쓰기 도움말' }));
+
+      // 위쪽 줄: 돌아가기 · 미리보기 · 임시 저장 · 올리기
+      kids.push(el('div', { class: 'nw-bar' },
+        ib('back', '목록으로(쓰던 글은 이 기기에 남아요)', close),
+        el('span', { class: 'nw-sp' }),
+        ib('eye', st.prev ? '쓰기로 돌아가기' : '미리보기', () => { st.prev = !st.prev; redraw(); }, st.prev),
+        wasLive ? null : el('button', { class: 'link', type: 'button', disabled: st.busy, onclick: () => save('임시') }, '임시 저장'),
+        el('button', { class: 'btn small nw-go', type: 'button', disabled: st.busy, onclick: () => save('올림') }, wasLive ? '고쳐서 올리기' : '올리기')));
+
       const future = e.date > todayStr();
       if (!st.prev) {
-        kids.push(el('div', { class: 'card aa-card' }, el('div', { class: 'aa-form' },
-          ...field('제목', title), ...field('꼬리표(제목 옆 작은 표시)', tag, '비워도 돼요. 공지·업데이트·안내처럼 짧게 써요.'), tags,
-          ...field('날짜', date, '오늘 날짜가 기본이에요. 앞으로의 날짜를 고르면 그날부터 소식에 보여요(예약).'),
+        kids.push(el('div', { class: 'nw-paper' }, title,
+          el('div', { class: 'nw-meta-row' }, date, tag, tags),
           future ? el('p', { class: 'hint' }, dayText(e.date) + '부터 소식에 보여요.') : null,
-          ...field('목록에 보이는 요약(없어도 돼요)', sum, '소식 목록에서 제목 아래에 한 줄로 보여요. 비우면 본문 첫 문단이 알아서 들어가요.'),
-          ...field('본문', el('div', null, tabs, tb, ta), HELP))));
+          el('details', { class: 'nw-sumbox', open: !!e.summary }, el('summary', null, '요약 넣기(선택)'), sum),
+          tools, ta));
       } else {
-        const it = el('div', { class: 'card aa-card nw-prev' },
+        kids.push(el('div', { class: 'nw-paper nw-prev' },
           el('div', { class: 'aa-head' }, el('span', { class: 'hint' }, dayText(e.date)), e.tag ? el('span', { class: 'own-tag' }, e.tag) : null),
           el('h2', null, e.title || '(제목이 비어 있어요)'),
           el('p', { class: 'hint' }, e.summary ? e.summary : Markdown.lead(e.body) ? Markdown.inline(Markdown.lead(e.body)) : '(요약이 비어 있어요)'),
-          Markdown.render(e.body));
-        kids.push(tabs, it, el('p', { class: 'hint' }, '실제 소식 페이지에서는 글꼴과 색이 조금 달라 보일 수 있어요.'));
+          Markdown.render(e.body)));
+        kids.push(el('p', { class: 'hint' }, '실제 소식 페이지에서는 글꼴과 색이 조금 달라 보일 수 있어요.'));
       }
       if (st.err) kids.push(el('p', { class: 'aa-err', role: 'alert' }, st.err));
       if (st.ask) {
-        kids.push(el('div', { class: 'card aa-card' }, el('p', { class: 'msg' }, '이 글을 지울까요? 되돌릴 수 없어요. 내리기만 하려면 "소식에서 내리기"를 눌러요.'),
+        kids.push(el('div', { class: 'card aa-card' }, el('p', { class: 'msg' }, '이 글을 지울까요? 되돌릴 수 없어요.' + (wasLive ? ' 내리기만 하려면 "소식에서 내리기"를 눌러요.' : '')),
           el('div', { class: 'actions' },
             el('button', { class: 'btn small', type: 'button', disabled: st.busy, onclick: remove }, '글 지우기'),
             el('button', { class: 'btn small ghost', type: 'button', onclick: () => { st.ask = false; redraw(); } }, '돌아가기'))));
       } else {
-        const wasLive = e.id && st.items.some(x => x.id === e.id && x.status === '올림');
-        kids.push(el('div', { class: 'actions nw-acts' },
-          el('button', { class: 'btn', type: 'button', disabled: st.busy, onclick: () => save('올림') }, wasLive ? '고쳐서 올리기' : '올리기'),
-          wasLive ? el('button', { class: 'btn ghost', type: 'button', disabled: st.busy, onclick: () => save('임시') }, '소식에서 내리기') : el('button', { class: 'btn ghost', type: 'button', disabled: st.busy, onclick: () => save('임시') }, '임시 저장'),
-          el('button', { class: 'btn ghost', type: 'button', disabled: st.busy, onclick: () => { mem.clear(); close(); } }, e.id ? '닫기' : '버리기'),
-          e.id ? el('button', { class: 'link quiet', type: 'button', disabled: st.busy, onclick: () => { st.ask = true; redraw(); } }, '글 지우기') : null));
+        kids.push(el('div', { class: 'nw-foot' },
+          el('p', { class: 'hint' }, '누구나 볼 수 있는 글이에요. 사람 이름·교회 이름·기도제목은 쓰지 마세요.'),
+          el('div', { class: 'actions' },
+            wasLive ? el('button', { class: 'link quiet', type: 'button', disabled: st.busy, onclick: () => save('임시') }, '소식에서 내리기') : null,
+            e.id ? el('button', { class: 'link quiet', type: 'button', disabled: st.busy, onclick: () => { st.ask = true; redraw(); } }, '글 지우기')
+              : (e.title || e.body ? el('button', { class: 'link quiet', type: 'button', disabled: st.busy, onclick: () => { mem.clear(); close(); } }, '이 글 버리기') : null))));
       }
-      return kids;
+      return [el('div', { class: 'nw-ed' }, ...kids)];
     }
 
     function row(it) {
