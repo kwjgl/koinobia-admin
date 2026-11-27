@@ -6,7 +6,7 @@
   const root = document.getElementById('app');
   const MENU = [
     ['today', '오늘'], ['apply', '교회 신청'], ['church', '교회'], ['usage', '이용 통계'],
-    ['feedback', '의견함'], ['community', '공동체'], ['storage', '저장 공간']
+    ['feedback', '의견함'], ['community', '공동체'], ['storage', '저장 공간'], ['news', '소식']
   ];
   const S = { today: null, sess: null, admin: false, seq: 0, last: 0 };
   const BASE_TITLE = document.title;
@@ -145,6 +145,15 @@
       try { d = await api.dbSize(); } catch (e) { return my === S.seq && fail(e); }
       if (my !== S.seq) return;
       body = Views.storage.render(d);
+    } else if (cur === 'news') {
+      let d;
+      try { d = await api.newsList(); }
+      catch (e) {
+        if (e.code === 'login' || e.code === 'forbidden') return my === S.seq && fail(e);
+        d = { error: e.code === 'sql' ? '서버 SQL 045가 아직 없어요. docs/setup.md의 안내대로 045_news_post.sql을 넣으면 소식 글을 쓸 수 있어요.' : (e.message || '불러오지 못했어요.') };
+      }
+      if (my !== S.seq) return;
+      body = Views.news.render(d);
     } else if (cur === 'usage') {
       body = Views.stats.render();
     } else body = soon(MENU.find(x => x[0] === cur)[1]);
