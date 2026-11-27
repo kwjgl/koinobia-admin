@@ -351,3 +351,14 @@ td.q4 { background: var(--seq-4); color: #FFFFFF; } td.q5 { background: var(--se
   .rs-tbl.stack td.sm ~ td.sm::before { content: " · "; white-space: pre; }
   .rs-tbl.stack td.empty { display: none; }
 }
+
+/* 요약 한 장 */
+.us-sum-head { margin: 0 0 .2em; font-weight: 600; }
+.us-sum-sub { margin: 1.2em 0 .2em; font-size: .85em; font-weight: 600; color: var(--ink-2); }
+.us-sum-list { margin: .2em 0 0; padding-left: 1.2em; }
+/* 인쇄·PDF: 메뉴·도구·단추를 빼고 지금 보이는 카드만 종이에 담는다(색은 그대로 밝은 값) */
+@media print {
+  .aa-top, .aa-menu, .aa-foot, .us-ctl, .us-tabs, .us-tools, .gr-tools, .tip, .toast, .us-card .us-hd .tip-row .tip { display: none; }
+  .wrap { padding: 0; max-width: none; }
+  .card { break-inside: avoid; }
+}
